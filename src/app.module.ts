@@ -8,6 +8,7 @@ import {  MenuDiarioModule } from './menudiario/menudiario.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { SucursalModule } from './sucursal/sucursal.module';
+import { IngredienteModule } from './ingrediente/ingrediente.module';
 
 @Module({
   imports: [
@@ -20,7 +21,8 @@ import { SucursalModule } from './sucursal/sucursal.module';
     PlatoModule,
     MenuDiarioModule,
     AuthModule,
-    SucursalModule
+    SucursalModule,
+    IngredienteModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -7,9 +7,17 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const cors = require('cors')
   app.useGlobalFilters(new AllExceptionFilter());
   app.useGlobalInterceptors(new TimeOutInterceptor());
   app.useGlobalPipes(new ValidationPipe());
+  // Configurar CORS usando el middleware
+  app.use(cors({
+    origin: ['http://localhost:3001'], // Cambiar según tu dominio
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+  }));
 
   const options = new DocumentBuilder()
     .setTitle('Proyección API')
