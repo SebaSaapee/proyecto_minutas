@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString} from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsString} from 'class-validator';
 
 export class PlatoDTO {
   @ApiProperty()
@@ -14,4 +14,9 @@ export class PlatoDTO {
   @IsNotEmpty()
   @IsString()
   readonly categoria: string;
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsBoolean()
+  readonly descontinuado: boolean;
+
 }
