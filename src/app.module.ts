@@ -10,6 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 import { SucursalModule } from './sucursal/sucursal.module';
 import { IngredienteModule } from './ingrediente/ingrediente.module';
 import { IngredientexplatoModule } from './Ingredientexplato/ingredientexplato.module';
+import { RecetaModule } from './receta/receta.module';
 
 @Module({
   imports: [
@@ -24,7 +25,8 @@ import { IngredientexplatoModule } from './Ingredientexplato/ingredientexplato.m
     AuthModule,
     SucursalModule,
     IngredienteModule,
-    IngredientexplatoModule
+    IngredientexplatoModule,
+    RecetaModule
   ],
   controllers: [AppController],
   providers: [AppService],
