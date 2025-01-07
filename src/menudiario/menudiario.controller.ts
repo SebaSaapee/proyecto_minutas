@@ -52,7 +52,7 @@ export class MenuDiarioController {
   }
 
   @Post(':menuId/plato/:platoId')
-  async addPassenger(
+  async addPlato(
     @Param('menuId') menuId: string,
     @Param('platoId') platoId: string,
   ) {
@@ -60,6 +60,6 @@ export class MenuDiarioController {
     if (!plato)
       throw new HttpException('Passenger Not Found', HttpStatus.NOT_FOUND);
 
-    return this.menuService.addPassenger(menuId, platoId);
+    return this.menuService.addPlato(menuId, platoId);
   }
 }
