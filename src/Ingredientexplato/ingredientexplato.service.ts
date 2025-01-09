@@ -40,4 +40,17 @@ export class IngredientexplatoService {
       msg: 'Deleted',
     };
   }
+
+  async findByPlato(idPlato: string): Promise<IIngredientexplato[]> {
+    try {
+        const ingredientexplatos = await this.model.find({ id_plato: idPlato })
+                .populate('id_ingrediente') // Popula el campo id_ingrediente
+                .exec();
+        return ingredientexplatos;
+    } catch (error) {
+        // Manejo de errores adecuado (ej. lanzar una excepción personalizada)
+        console.error("Error buscando ingredientes por plato:", error);
+        throw error; // Re-lanza el error para que sea manejado por un middleware global o un interceptor
+    }
+  }
 }

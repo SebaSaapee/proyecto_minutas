@@ -46,4 +46,9 @@ export class IngredientexplatoController {
   delete(@Param('id') id: string) {
     return this.ingredientexplatoService.delete(id);
   }
+
+  @Get('plato/:idPlato')
+  async findByPlato(@Param('idPlato') idPlato: string): Promise<IIngredientexplato[]> {
+      return this.ingredientexplatoService.findByPlato(idPlato);
+  }
 }
