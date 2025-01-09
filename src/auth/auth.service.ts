@@ -27,8 +27,13 @@ export class AuthService {
       username: user.username,
       sub: user._id,
     };
-
-    return { access_token: this.jwtService.sign(payload) };
+  
+    const accessToken = this.jwtService.sign(payload);
+  
+    return {
+      access_token: accessToken,
+      id: user._id, // Incluye el ID del usuario en la respuesta
+    };
   }
 
   async signUp(userDTO: UserDTO) {
