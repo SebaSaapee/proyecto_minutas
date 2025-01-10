@@ -12,13 +12,9 @@ export class MenuDTO {
   @IsNotEmpty()
   @Type(() => Date)
   @IsDate()
-  readonly fecha_inicio: Date; // Fecha de inicio
+  readonly fecha: Date; // Fecha de inicio
 
-  @ApiProperty()
-  @IsNotEmpty()
-  @Type(() => Date)
-  @IsDate()
-  readonly fecha_termino: Date; // Fecha de término
+
 
   @ApiProperty()
   @IsNotEmpty()
