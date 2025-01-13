@@ -14,7 +14,7 @@ async function bootstrap() {
   // Configurar CORS usando el middleware
   app.use(cors({
     origin: ['http://localhost:3001'], // Cambiar según tu dominio
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST','PUT','DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   }));
