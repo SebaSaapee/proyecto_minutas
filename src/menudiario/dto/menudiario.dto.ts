@@ -13,25 +13,17 @@ export class MenuDTO {
   @Type(() => Date)
   @IsDate()
   readonly fecha: Date; // Fecha de inicio
-
-
-
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
   readonly semana: number; // Número de semana
-
-
   @ApiProperty()
   @IsNotEmpty()
-  @IsString()
   readonly id_sucursal: string;
-
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   readonly estado: string;
-
   @ApiProperty({ type: [String], description: 'Lista de IDs de platos' })
   @IsNotEmpty()
   @IsArray()

@@ -33,7 +33,7 @@ export class MenuDiarioService {
   }
 
   async findAll(): Promise<IMenudiario[]> {
-    return await this.model.find().populate('listaplatos');
+    return await this.model.find().populate('listaplatos').populate('id_sucursal');
   }
 
   async findOne(id: string): Promise<IMenudiario> {

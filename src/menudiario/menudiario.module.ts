@@ -6,6 +6,7 @@ import { MenuDiarioService } from './menudiario.service';
 import {  MenuDiarioSchema } from './schema/menudiario.schema';
 import {  PlatoModule } from 'src/plato/plato.module';
 import { MenuDiarioController } from './menudiario.controller';
+import { SucursalModule } from 'src/sucursal/sucursal.module';
 
 @Module({
   imports: [
@@ -15,7 +16,7 @@ import { MenuDiarioController } from './menudiario.controller';
         useFactory: () => MenuDiarioSchema.plugin(require('mongoose-autopopulate')),
       },
     ]),
-    PlatoModule,
+    PlatoModule,SucursalModule
   ],
   controllers: [MenuDiarioController],
   providers: [MenuDiarioService],
