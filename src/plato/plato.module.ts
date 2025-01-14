@@ -16,6 +16,6 @@ import { PlatoSchema } from './schema/plato.schema';
   ],
   controllers: [PlatoController],
   providers: [PlatoService],
-  exports: [PlatoService],
+  exports: [PlatoService,MongooseModule],
 })
 export class PlatoModule {}
