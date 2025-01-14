@@ -70,7 +70,6 @@ export class MenuDiarioController {
     @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
   ) {
     const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
-
     // Se pasa todo lo recibido en el cuerpo del POST al servicio
     return this.menuService.calcularIngredientesPorPeriodo({
       fechaInicio: new Date(fechaInicio),   // Convertir fechaInicio a Date
@@ -80,7 +79,9 @@ export class MenuDiarioController {
     });
   }
 
-  @Get('platos-entre-fechas')
+
+  
+  @Get('generar-reporte/platos-entre-fechas')
   async getPlatosEntreFechas(
     @Query('fechaInicio') fechaInicio: string,
     @Query('fechaFin') fechaFin: string,
