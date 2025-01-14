@@ -62,4 +62,20 @@ export class MenuDiarioController {
 
     return this.menuService.addPlato(menuId, platoId);
   }
+
+  @Post('generar-reporte')
+  async generarReporte(
+    @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
+  ) {
+    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
+
+    // Se pasa todo lo recibido en el cuerpo del POST al servicio
+    return this.menuService.calcularIngredientesPorPeriodo({
+      fechaInicio: new Date(fechaInicio),   // Convertir fechaInicio a Date
+      fechaFin: new Date(fechaFin),         // Convertir fechaFin a Date
+      sucursalId,
+      platosConCantidad,                    // Pasa la lista de platos con cantidad
+    });
+  }
 }
+
