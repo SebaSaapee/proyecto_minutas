@@ -200,5 +200,36 @@ export class MenuDiarioService {
     };
   }
   
+  async getPlatosEntreFechas(fechaInicio: Date, fechaFin: Date): Promise<IPlato[]> {
+    // Verificar que las fechas son válidas
+    if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
+      throw new BadRequestException('Las fechas proporcionadas no son válidas.');
+    }
+
+    if (fechaInicio > fechaFin) {
+      throw new BadRequestException('La fecha de inicio no puede ser posterior a la fecha de fin.');
+    }
+
+    // Obtener los menús que se encuentran en el rango de fechas
+    const menus = await this.model
+      .find({
+        fecha: { $gte: fechaInicio, $lte: fechaFin },
+      })
+      .populate('listaplatos')  // Poblar los platos de cada menú
+      .exec();
+
+    // Crear un set para evitar platos duplicados
+    const platosSet = new Set<IPlato>();
+
+    // Recorrer los menús y agregar los platos al set
+    menus.forEach(menu => {
+      menu.listaplatos.forEach(plato => {
+        platosSet.add(plato); // Añadimos los platos únicos
+      });
+    });
+
+    // Convertir el set en un array y devolverlo
+    return Array.from(platosSet);
+  }
   
 }

@@ -11,6 +11,7 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  BadRequestException,
 } from '@nestjs/common';
 import { PlatoService } from 'src/plato/plato.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -76,6 +77,26 @@ export class MenuDiarioController {
       sucursalId,
       platosConCantidad,                    // Pasa la lista de platos con cantidad
     });
+  }
+
+  @Post('platos-entre-fechas')
+  async getPlatosEntreFechas(
+    @Body() body: { fechaInicio: string; fechaFin: string },  // Recibimos un objeto simple
+  ) {
+    const { fechaInicio, fechaFin } = body;
+    const startDate = new Date(fechaInicio);
+    const endDate = new Date(fechaFin);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new BadRequestException('Las fechas proporcionadas no son válidas.');
+    }
+
+    if (startDate > endDate) {
+      throw new BadRequestException('La fecha de inicio no puede ser posterior a la fecha de fin.');
+    }
+
+    const platos = await this.menuService.getPlatosEntreFechas(startDate, endDate);
+    return platos;
   }
 }
 
