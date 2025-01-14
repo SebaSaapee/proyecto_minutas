@@ -12,6 +12,7 @@ import {
   HttpStatus,
   UseGuards,
   BadRequestException,
+  Query,
 } from '@nestjs/common';
 import { PlatoService } from 'src/plato/plato.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -79,11 +80,11 @@ export class MenuDiarioController {
     });
   }
 
-  @Post('platos-entre-fechas')
+  @Get('platos-entre-fechas')
   async getPlatosEntreFechas(
-    @Body() body: { fechaInicio: string; fechaFin: string },  // Recibimos un objeto simple
+    @Query('fechaInicio') fechaInicio: string,
+    @Query('fechaFin') fechaFin: string,
   ) {
-    const { fechaInicio, fechaFin } = body;
     const startDate = new Date(fechaInicio);
     const endDate = new Date(fechaFin);
 

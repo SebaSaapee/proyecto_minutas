@@ -215,7 +215,7 @@ export class MenuDiarioService {
       .find({
         fecha: { $gte: fechaInicio, $lte: fechaFin },
       })
-      .populate('listaplatos')  // Poblar los platos de cada menú
+      .populate('listaplatos') // Poblar los platos de cada menú
       .exec();
 
     // Crear un set para evitar platos duplicados
