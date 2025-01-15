@@ -8,6 +8,7 @@ const MenuDiarioSchema = new mongoose.Schema(
     id_sucursal: { type: mongoose.Schema.Types.ObjectId, ref: 'sucursales', required: true },
     estado: { type: String, required: true },
     listaplatos: [{ type: mongoose.Schema.Types.ObjectId, ref: 'platos' }],
+    aprobado: {type: Boolean, required : false}
   },
   { timestamps: true },
 );
