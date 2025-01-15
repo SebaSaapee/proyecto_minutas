@@ -21,66 +21,90 @@ export class MenuDiarioService {
   async create(menuDTO: MenuDTO): Promise<IMenudiario> {
     const last12Weeks = new Date();
     last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
-  
+
     const last4Weeks = new Date();
     last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
-  
+
     // Validar si ya existe un menú con la misma fecha
     const existingMenu = await this.model.findOne({ fecha: menuDTO.fecha });
     if (existingMenu) {
-      throw new BadRequestException('Ya existe un menú registrado con esta fecha.');
+        throw new BadRequestException('Ya existe un menú registrado con esta fecha.');
     }
-  
+
     // Obtener todos los platos por su ID
     const platos = await this.platoModel.find({ 
-      '_id': { $in: menuDTO.listaplatos } // Filtramos los platos por los IDs de la lista
+        '_id': { $in: menuDTO.listaplatos } // Filtramos los platos por los IDs de la lista
     });
-  
+
     // Filtramos los platos según su categoría
     const platosFondoIds = platos.filter(plato => plato.categoria === 'PLATO DE FONDO').map(plato => plato._id);
     const platosRestrictivosIds = platos.filter(plato =>
-      ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria)
+        ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria)
     ).map(plato => plato._id);
-  
+
     const otrosPlatosIds = platos.filter(plato =>
-      !['PLATO DE FONDO', 'VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria)
+        !['PLATO DE FONDO', 'VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria)
     ).map(plato => plato._id);
-  
+
+    // Filtramos los platos de ensalada
+    const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
+    
+    // Validar que el conjunto de ensaladas no tenga más de 3 platos
+    if (platosEnsalada.length !== 3) {
+        throw new BadRequestException('El menú debe contener exactamente 3 ensaladas.');
+    }
+
+    // Obtenemos los IDs de las ensaladas
+    const platosEnsaladaIds = platosEnsalada.map(plato => plato._id);
+
+    // Verificar que no se repita el conjunto de ensaladas en las últimas 4 semanas
+    const existingPlatoEnsalada = await this.model.findOne({
+        createdAt: { $gte: last4Weeks },
+        listaplatos: { $all: platosEnsaladaIds }, // Comprobamos si ya existe el conjunto de ensaladas
+    });
+
+    if (existingPlatoEnsalada) {
+        throw new BadRequestException(
+            'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas.',
+        );
+    }
+
     // Verificar que no se repitan platos de fondo en las últimas 12 semanas
     const existingPlatoFondo = await this.model.findOne({
-      createdAt: { $gte: last12Weeks },
-      listaplatos: { $in: platosFondoIds }, // Comprobamos si hay algún plato de fondo repetido
+        createdAt: { $gte: last12Weeks },
+        listaplatos: { $in: platosFondoIds }, // Comprobamos si hay algún plato de fondo repetido
     });
-  
+
     if (existingPlatoFondo) {
-      throw new BadRequestException(
-        'Un menú con los mismos platos de fondo ya existe en las últimas 12 semanas.',
-      );
+        throw new BadRequestException(
+            'Un menú con los mismos platos de fondo ya existe en las últimas 12 semanas.',
+        );
     }
-  
+
     // Verificar que no se repitan platos restrictivos (vegetariano, vegano, guarnición) en las últimas 4 semanas
     const existingPlatoRestrictivo = await this.model.findOne({
-      createdAt: { $gte: last4Weeks },
-      listaplatos: { $in: platosRestrictivosIds }, // Comprobamos si hay algún plato restrictivo repetido
+        createdAt: { $gte: last4Weeks },
+        listaplatos: { $in: platosRestrictivosIds }, // Comprobamos si hay algún plato restrictivo repetido
     });
-  
+
     if (existingPlatoRestrictivo) {
-      throw new BadRequestException(
-        'Un menú con los mismos platos vegetarianos, veganos o de guarnición ya existe en las últimas 4 semanas.',
-      );
+        throw new BadRequestException(
+            'Un menú con los mismos platos vegetarianos, veganos o de guarnición ya existe en las últimas 4 semanas.',
+        );
     }
-  
+
     // Verificar que no haya platos repetidos en todo el menú (todos los platos por su ID)
     const allPlatosIds = [...platosFondoIds, ...platosRestrictivosIds, ...otrosPlatosIds];
     const platosUnicos = new Set(allPlatosIds.map(platoId => platoId.toString())); // Usamos Set para eliminar duplicados
     if (platosUnicos.size !== allPlatosIds.length) {
-      throw new BadRequestException('Hay platos repetidos en el menú.');
+        throw new BadRequestException('Hay platos repetidos en el menú.');
     }
-  
+
     // Si no se encontraron duplicados, creamos el nuevo menú
     const newMenu = new this.model(menuDTO);
     return await newMenu.save();
-  }
+}
+
   async findAll(): Promise<IMenudiario[]> {
     return await this.model.find().populate('listaplatos').populate('id_sucursal');
   }
