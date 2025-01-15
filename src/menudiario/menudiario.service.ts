@@ -267,6 +267,8 @@ export class MenuDiarioService {
   return this.model.find({ aprobado: false }).exec();
 }
 
-
+async aprobarMenu(id: string, aprobado: boolean) {
+  return this.model.findByIdAndUpdate(id, { aprobado }, { new: true }).exec();
+}
 
 }

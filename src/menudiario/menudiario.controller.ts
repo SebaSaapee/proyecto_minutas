@@ -13,6 +13,7 @@ import {
   UseGuards,
   BadRequestException,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { PlatoService } from 'src/plato/plato.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -103,10 +104,15 @@ export class MenuDiarioController {
   }
 
  // Ruta para obtener los menús no aprobados
- @Get('no-aprobados')
+ @Get('verificar/no-aprobados')
  async getMenusNoAprobados(): Promise<IMenudiario[]> {
    return this.menuService.getMenusNoAprobados();
  }
+
+ @Patch('Verificar/aprobado/:id')
+  async aprobarMenu(@Param('id') id: string, @Body() body: { aprobado: boolean }) {
+    return this.menuService.aprobarMenu(id, body.aprobado);
+  }
 
 }
 
