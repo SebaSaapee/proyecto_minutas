@@ -25,6 +25,12 @@ export class MenuDiarioService {
     const last4Weeks = new Date();
     last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
   
+    // Validar si ya existe un menú con la misma fecha
+    const existingMenu = await this.model.findOne({ fecha: menuDTO.fecha });
+    if (existingMenu) {
+      throw new BadRequestException('Ya existe un menú registrado con esta fecha.');
+    }
+  
     // Obtener todos los platos por su ID
     const platos = await this.platoModel.find({ 
       '_id': { $in: menuDTO.listaplatos } // Filtramos los platos por los IDs de la lista
