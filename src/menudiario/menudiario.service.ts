@@ -262,4 +262,11 @@ export class MenuDiarioService {
     return Array.from(platosSet);
   }
   
+ // Método para obtener los menús no aprobados
+ async getMenusNoAprobados(): Promise<IMenudiario[]> {
+  return this.model.find({ aprobado: false }).exec();
+}
+
+
+
 }

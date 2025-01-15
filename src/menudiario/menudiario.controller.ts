@@ -17,6 +17,7 @@ import {
 import { PlatoService } from 'src/plato/plato.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { IMenudiario } from 'src/common/interfaces/menudiario.interface';
 
 @ApiTags('Menu Diario')
 @ApiBearerAuth()
@@ -100,5 +101,12 @@ export class MenuDiarioController {
     const platos = await this.menuService.getPlatosEntreFechas(startDate, endDate);
     return platos;
   }
+
+ // Ruta para obtener los menús no aprobados
+ @Get('no-aprobados')
+ async getMenusNoAprobados(): Promise<IMenudiario[]> {
+   return this.menuService.getMenusNoAprobados();
+ }
+
 }
 
