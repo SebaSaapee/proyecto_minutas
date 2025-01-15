@@ -19,6 +19,7 @@ import { PlatoService } from 'src/plato/plato.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { IMenudiario } from 'src/common/interfaces/menudiario.interface';
+import { IPlato } from 'src/common/interfaces/plato.interface';
 
 @ApiTags('Menu Diario')
 @ApiBearerAuth()
@@ -112,6 +113,19 @@ export class MenuDiarioController {
  @Patch('Verificar/aprobado/:id')
   async aprobarMenu(@Param('id') id: string, @Body() body: { aprobado: boolean }) {
     return this.menuService.aprobarMenu(id, body.aprobado);
+  }
+  @Get('Verificar/platos-disponibles')
+  async getPlatosDisponibles(@Query('fecha') fecha: string): Promise<IPlato[]> {
+    if (!fecha) {
+      throw new BadRequestException('Debe proporcionar una fecha válida.');
+    }
+
+    const parsedFecha = new Date(fecha);
+    if (isNaN(parsedFecha.getTime())) {
+      throw new BadRequestException('Formato de fecha no válido.');
+    }
+
+    return await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
   }
 
 }

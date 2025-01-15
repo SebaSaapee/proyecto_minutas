@@ -271,4 +271,64 @@ async aprobarMenu(id: string, aprobado: boolean) {
   return this.model.findByIdAndUpdate(id, { aprobado }, { new: true }).exec();
 }
 
+
+async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
+  const last12Weeks = new Date(fecha);
+  last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
+
+  const last4Weeks = new Date(fecha);
+  last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
+
+  // Obtener todos los platos
+  const platos = await this.platoModel.find();
+
+  // Filtrar platos por categoría
+  const platosFondo = platos.filter(plato => plato.categoria === 'PLATO DE FONDO');
+  const platosRestrictivos = platos.filter(plato =>
+    ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria)
+  );
+  const ensaladas = platos.filter(plato => plato.categoria === 'ENSALADA');
+
+  // Verificar si existen platos de fondo repetidos en las últimas 12 semanas
+  const platosFondoRepetidos = await this.model.find({
+    createdAt: { $gte: last12Weeks, $lt: fecha },
+    'listaplatos._id': { $in: platosFondo.map(plato => plato._id) },
+  });
+
+  // Verificar si existen platos restrictivos repetidos en las últimas 4 semanas
+  const platosRestrictivosRepetidos = await this.model.find({
+    createdAt: { $gte: last4Weeks, $lt: fecha },
+    'listaplatos._id': { $in: platosRestrictivos.map(plato => plato._id) },
+  });
+
+  // Verificar si existen combinaciones de ensaladas repetidas en las últimas 4 semanas
+  const combinacionesEnsaladasRepetidas = await this.model.find({
+    createdAt: { $gte: last4Weeks, $lt: fecha },
+    'listaplatos._id': { $all: ensaladas.map(plato => plato._id) },
+  });
+
+  // Filtrar platos que no están disponibles
+  const platosFondoDisponibles = platosFondo.filter(plato =>
+    !platosFondoRepetidos.some(menu =>
+      menu.listaplatos.some(listaPlato => listaPlato._id ===(plato._id))
+    )
+  );
+
+  const platosRestrictivosDisponibles = platosRestrictivos.filter(plato =>
+    !platosRestrictivosRepetidos.some(menu =>
+      menu.listaplatos.some(listaPlato => listaPlato._id ===(plato._id))
+    )
+  );
+
+  const ensaladasDisponibles = ensaladas.filter(plato =>
+    !combinacionesEnsaladasRepetidas.some(menu =>
+      menu.listaplatos.some(listaPlato => listaPlato._id ===(plato._id))
+    )
+  );
+
+  // Devolver los platos que están disponibles
+  return [...platosFondoDisponibles, ...platosRestrictivosDisponibles, ...ensaladasDisponibles];
+}
+
+
 }
