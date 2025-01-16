@@ -279,20 +279,30 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
     fechaFin: Date | null;
     sucursalId: string;
   }) {
-    const filtro: any = { id_sucursal: sucursalId };
+    const filtro: any = {};
+  
+    // Agregar filtro por sucursal
+    if (sucursalId) {
+      filtro.id_sucursal = sucursalId;
+    }
+  
+    // Agregar filtro por fechas
     if (fechaInicio) {
       filtro.fecha = { $gte: fechaInicio };
     }
     if (fechaFin) {
       filtro.fecha = { ...filtro.fecha, $lte: fechaFin };
     }
-
+  
+    // Consultar los menús con los filtros aplicados
     const menus = await this.model
       .find(filtro)
       .populate('listaplatos')
       .exec();
-
+  
+    // Formatear la respuesta para incluir solo los datos requeridos
     return menus.map(menu => ({
+      sucursal: menu.id_sucursal, // Incluye la sucursal en la respuesta
       fecha: menu.fecha,
       platos: menu.listaplatos.map(plato => ({
         id: plato._id,
