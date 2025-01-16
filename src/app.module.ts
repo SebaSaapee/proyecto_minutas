@@ -1,16 +1,19 @@
-import { MongooseModule } from '@nestjs/mongoose';
 import { Module } from '@nestjs/common';
+import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
-import {  PlatoModule } from './plato/plato.module';
-import {  MenuDiarioModule } from './menudiario/menudiario.module';
+import { PlatoModule } from './plato/plato.module';
+import { MenuDiarioModule } from './menudiario/menudiario.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { SucursalModule } from './sucursal/sucursal.module';
 import { IngredienteModule } from './ingrediente/ingrediente.module';
 import { IngredientexplatoModule } from './Ingredientexplato/ingredientexplato.module';
 import { RecetaModule } from './receta/receta.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+
+import * as path from 'path';  // Asegúrate de que esta línea esté presente
 
 @Module({
   imports: [
@@ -26,7 +29,13 @@ import { RecetaModule } from './receta/receta.module';
     SucursalModule,
     IngredienteModule,
     IngredientexplatoModule,
-    RecetaModule
+    RecetaModule,
+
+    // Configuración de ruta estática para los archivos en 'reports'
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, '..', 'reports'), // Carpeta donde se almacenarán los archivos
+      serveRoot: '/reports', // URL base para acceder a los archivos
+    }),
   ],
   controllers: [AppController],
   providers: [AppService],
