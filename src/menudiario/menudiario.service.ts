@@ -314,60 +314,75 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
 
   // Lógica para el segundo endpoint
   async calcularIngredientesPorPeriodo(
-    filtro: { fechaInicio: Date; fechaFin: Date; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
-  ): Promise<{
-    sucursal: string;
-    fechaInicio: Date;
-    fechaFin?: Date;
-    ingredientesTotales: { idIngrediente: string; nombreIngrediente: string; cantidad: number; unidadMedida: string }[];
-  }> {
-    const ingredientesTotalesMap: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadMedida: string } } = {};
+  filtro: { 
+    fechaInicio: Date; 
+    fechaFin: Date; 
+    sucursalId: string; 
+    platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] 
+  },
+): Promise<{
+  sucursal: string;
+  fechaInicio: Date;
+  fechaFin?: Date;
+  ingredientesTotales: { idIngrediente: string; nombreIngrediente: string; cantidad: number; unidadMedida: string }[];
+}> {
+  const ingredientesTotalesMap: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadMedida: string } } = {};
 
-    const menus = await this.model
-      .find({
-        fecha: { $gte: filtro.fechaInicio, $lte: filtro.fechaFin },
-        id_sucursal: filtro.sucursalId,
-      })
-      .populate('listaplatos')
-      .exec();
+  // Obtener los menús dentro del rango de fechas para la sucursal especificada
+  const menus = await this.model
+    .find({
+      fecha: { $gte: filtro.fechaInicio, $lte: filtro.fechaFin },
+      id_sucursal: filtro.sucursalId,
+    })
+    .populate('listaplatos')
+    .exec();
 
-    for (const menu of menus) {
-      for (const plato of menu.listaplatos) {
-        const platoConCantidad = filtro.platosConCantidad.find(p => p.platoId === plato._id.toString());
-        const cantidadPlato = platoConCantidad ? platoConCantidad.cantidad : 0;
+  for (const menu of menus) {
+    for (const plato of menu.listaplatos) {
+      // Filtrar platosConCantidad por fecha y platoId correspondiente
+      const platoConCantidad = filtro.platosConCantidad.find(p => 
+        p.platoId === plato._id.toString() && 
+        new Date(p.fecha).toISOString() === menu.fecha.toISOString()
+      );
 
-        const ingredientes = await this.ingredientexplatoModel
-          .find({ id_plato: plato._id })
-          .populate('id_ingrediente')
-          .exec();
+      // Si se encuentra el plato, se toma la cantidad
+      const cantidadPlato = platoConCantidad ? platoConCantidad.cantidad : 0;
 
-        for (const ingrediente of ingredientes) {
-          const { id_ingrediente, porcion_neta } = ingrediente;
-          const totalIngrediente = porcion_neta * cantidadPlato;
+      // Obtener los ingredientes del plato
+      const ingredientes = await this.ingredientexplatoModel
+        .find({ id_plato: plato._id })
+        .populate('id_ingrediente')
+        .exec();
 
-          if (ingredientesTotalesMap[id_ingrediente._id]) {
-            ingredientesTotalesMap[id_ingrediente._id].cantidad += totalIngrediente;
-          } else {
-            ingredientesTotalesMap[id_ingrediente._id] = {
-              nombreIngrediente: id_ingrediente.nombreIngrediente,
-              cantidad: totalIngrediente,
-              unidadMedida: id_ingrediente.unidadmedida,
-            };
-          }
+      for (const ingrediente of ingredientes) {
+        const { id_ingrediente, porcion_neta } = ingrediente;
+        const totalIngrediente = porcion_neta * cantidadPlato;
+
+        // Acumular los ingredientes
+        if (ingredientesTotalesMap[id_ingrediente._id]) {
+          ingredientesTotalesMap[id_ingrediente._id].cantidad += totalIngrediente;
+        } else {
+          ingredientesTotalesMap[id_ingrediente._id] = {
+            nombreIngrediente: id_ingrediente.nombreIngrediente,
+            cantidad: totalIngrediente,
+            unidadMedida: id_ingrediente.unidadmedida,
+          };
         }
       }
     }
-
-    return {
-      sucursal: filtro.sucursalId,
-      fechaInicio: filtro.fechaInicio,
-      fechaFin: filtro.fechaFin,
-      ingredientesTotales: Object.keys(ingredientesTotalesMap).map(id => ({
-        idIngrediente: id,
-        ...ingredientesTotalesMap[id],
-      })),
-    };
   }
+
+  return {
+    sucursal: filtro.sucursalId,
+    fechaInicio: filtro.fechaInicio,
+    fechaFin: filtro.fechaFin,
+    ingredientesTotales: Object.keys(ingredientesTotalesMap).map(id => ({
+      idIngrediente: id,
+      ...ingredientesTotalesMap[id],
+    })),
+  };
+}
+
 
 
 
