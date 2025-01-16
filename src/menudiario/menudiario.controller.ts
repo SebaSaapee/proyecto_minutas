@@ -129,18 +129,23 @@ export class MenuDiarioController {
   }
 
   @Post('reporte/calcular-ingredientes')
-  async calcularIngredientes(
-    @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] },
-  ) {
-    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
-  
-    return this.menuService.calcularIngredientesPorPeriodo({
-      fechaInicio: new Date(fechaInicio),
-      fechaFin: new Date(fechaFin),
-      sucursalId,
-      platosConCantidad,
-    });
-  }
+async calcularIngredientes(
+  @Body() filtro: { 
+    fechaInicio: string; 
+    fechaFin: string; 
+    sucursalId: string; 
+    platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] 
+  },
+) {
+  const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
+
+  return this.menuService.calcularIngredientesPorPeriodo({
+    fechaInicio: new Date(fechaInicio),
+    fechaFin: new Date(fechaFin),
+    sucursalId,
+    platosConCantidad,
+  });
+}
   
 
 }

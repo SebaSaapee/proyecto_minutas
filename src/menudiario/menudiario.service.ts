@@ -314,56 +314,58 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
   }
 
   // Lógica para el segundo endpoint
-  async calcularIngredientesPorPeriodo(filtro: {
-    fechaInicio: Date;
-    fechaFin: Date;
-    sucursalId: string;
-    platosConCantidad: { fecha: string; platoId: string; cantidad: number }[];
-  }) {
-    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
-
-    // Resultados acumulados de ingredientes
-    const reporteInsumos = [];
-
-    // Iterar sobre los platos con cantidad
-    for (const platoData of platosConCantidad) {
-      const { platoId, cantidad } = platoData;
-
-      // Obtener ingredientes asociados al plato
-      const ingredientesDelPlato = await this.ingredientexplatoModel
-        .find({ id_plato: platoId })
-        .populate('id_ingrediente'); // Popula el ingrediente con su información
-
-      // Iterar sobre los ingredientes del plato
-      for (const ingredienteData of ingredientesDelPlato) {
-        const { id_ingrediente, porcion_neta, peso_bruto, rendimiento } = ingredienteData;
-        const ingrediente = id_ingrediente as IIngrediente;
-
-        // Calcular la cantidad de ingrediente necesario
-        const cantidadIngrediente = cantidad * (porcion_neta || 1); // Ajusta según el cálculo de porción
-
-        // Verificar si el ingrediente ya está en el reporte, para acumular
-        const indexIngrediente = reporteInsumos.findIndex(
-          (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
-        );
-
-        if (indexIngrediente !== -1) {
-          // Acumular cantidad de ingrediente
-          reporteInsumos[indexIngrediente].cantidad += cantidadIngrediente;
-        } else {
-          // Si no está, agregarlo al reporte
-          reporteInsumos.push({
-            ingredienteId: ingrediente._id,
-            nombreIngrediente: ingrediente.nombreIngrediente,
-            unidadMedida: ingrediente.unidadmedida,
-            cantidad: cantidadIngrediente,
-          });
+  
+  
+    async calcularIngredientesPorPeriodo(filtro: {
+      fechaInicio: Date;
+      fechaFin: Date;
+      sucursalId: string;
+      platosConCantidad: { fecha: string; platoId: string; cantidad: number }[];
+    }) {
+      const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
+  
+      const reporteInsumos = [];
+  
+      // Iterar sobre los platos con cantidad
+      for (const platoData of platosConCantidad) {
+        const { platoId, cantidad } = platoData;
+  
+        // Obtener ingredientes asociados al plato
+        const ingredientesDelPlato = await this.ingredientexplatoModel
+          .find({ id_plato: platoId })
+          .populate('id_ingrediente'); // Popula el ingrediente con su información
+  
+        // Iterar sobre los ingredientes del plato
+        for (const ingredienteData of ingredientesDelPlato) {
+          const { id_ingrediente, porcion_neta, peso_bruto, rendimiento } = ingredienteData;
+          const ingrediente = id_ingrediente as IIngrediente;
+  
+          // Calcular la cantidad de ingrediente necesario
+          const cantidadIngrediente = cantidad * (porcion_neta || 1); // Ajusta según el cálculo de porción
+  
+          // Verificar si el ingrediente ya está en el reporte, para acumular
+          const indexIngrediente = reporteInsumos.findIndex(
+            (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
+          );
+  
+          if (indexIngrediente !== -1) {
+            // Acumular cantidad de ingrediente
+            reporteInsumos[indexIngrediente].cantidad += cantidadIngrediente;
+          } else {
+            // Si no está, agregarlo al reporte
+            reporteInsumos.push({
+              ingredienteId: ingrediente._id,
+              nombreIngrediente: ingrediente.nombreIngrediente,
+              unidadMedida: ingrediente.unidadmedida,
+              cantidad: cantidadIngrediente,
+            });
+          }
         }
       }
+  
+      return reporteInsumos;
     }
-
-    return reporteInsumos;
-  }
+  
 }
 
 
