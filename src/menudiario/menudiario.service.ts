@@ -105,9 +105,16 @@ export class MenuDiarioService {
     return await newMenu.save();
 }
 
+
+
+
+
+
   async findAll(): Promise<IMenudiario[]> {
     return await this.model.find().populate('listaplatos').populate('id_sucursal');
   }
+
+
 
   async findOne(id: string): Promise<IMenudiario> {
     const menu = await this.model.findById(id).populate('listaplatos');
@@ -116,6 +123,7 @@ export class MenuDiarioService {
     }
     return menu;
   }
+  
 
   async update(id: string, menuDTO: MenuDTO): Promise<IMenudiario> {
     const updatedMenu = await this.model.findByIdAndUpdate(id, menuDTO, {
@@ -151,85 +159,6 @@ export class MenuDiarioService {
       .populate('listaplatos');
   }
 
-
-
-  //Funcion para calcular ingredientes x periodo de tiempo y sucursal.
-  async calcularIngredientesPorPeriodo(
-    filtro: { fechaInicio: Date; fechaFin: Date; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
-  ): Promise<{
-    ingredientesTotales: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } };
-    ingredientesPorPlato: { [platoId: string]: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } } };
-  }> {
-    const ingredientesTotales: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } } = {};
-    const ingredientesPorPlato: { [platoId: string]: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } } } = {};
-  
-    // Obtener menús del período filtrado por sucursal
-    const menus = await this.model
-      .find({
-        fecha: { $gte: filtro.fechaInicio, $lte: filtro.fechaFin },
-        id_sucursal: filtro.sucursalId,
-      })
-      .populate('listaplatos')
-      .exec();
-  
-    // Procesar cada menú
-    for (const menu of menus) {
-      for (const plato of menu.listaplatos) {
-        // Obtener la cantidad del plato en la lista de platos con cantidad
-        const platoConCantidad = filtro.platosConCantidad.find(p => p.platoId === plato._id.toString());
-        const cantidadPlato = platoConCantidad ? platoConCantidad.cantidad : 0;
-  
-        // Inicializa la entrada del plato si no existe
-        if (!ingredientesPorPlato[plato._id]) {
-          ingredientesPorPlato[plato._id] = {};
-        }
-  
-        // Obtener ingredientes del plato
-        const ingredientesDelPlato = await this.ingredientexplatoModel
-          .find({ id_plato: plato._id })
-          .populate('id_ingrediente')
-          .exec();
-  
-        // Calcular ingredientes necesarios por plato, multiplicados por la cantidad de platos
-        for (const ingredienteDelPlato of ingredientesDelPlato) {
-          const { id_ingrediente, porcion_neta } = ingredienteDelPlato;
-          const ingrediente = id_ingrediente as any;
-  
-          if (porcion_neta) {
-            const cantidadTotalIngrediente = porcion_neta * cantidadPlato;
-  
-            // Sumar al total general de ingredientes
-            if (ingredientesTotales[ingrediente._id]) {
-              ingredientesTotales[ingrediente._id].cantidad += cantidadTotalIngrediente;
-            } else {
-              ingredientesTotales[ingrediente._id] = {
-                nombreIngrediente: ingrediente.nombreIngrediente,
-                cantidad: cantidadTotalIngrediente,
-                unidadmedida: ingrediente.unidadmedida,
-              };
-            }
-  
-            // Sumar al desglose por plato
-            if (ingredientesPorPlato[plato._id][ingrediente._id]) {
-              ingredientesPorPlato[plato._id][ingrediente._id].cantidad += cantidadTotalIngrediente;
-            } else {
-              ingredientesPorPlato[plato._id][ingrediente._id] = {
-                nombreIngrediente: ingrediente.nombreIngrediente,
-                cantidad: cantidadTotalIngrediente,
-                unidadmedida: ingrediente.unidadmedida,
-              };
-            }
-          }
-        }
-      }
-    }
-  
-    return {
-      ingredientesTotales,
-      ingredientesPorPlato,
-    };
-  }
-  
   async getPlatosEntreFechas(fechaInicio: Date, fechaFin: Date): Promise<IPlato[]> {
     // Verificar que las fechas son válidas
     if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {
@@ -341,6 +270,96 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
       ...postres,
     ];
   }
+  async obtenerPlatosPorFechaSucursal({
+    fechaInicio,
+    fechaFin,
+    sucursalId,
+  }: {
+    fechaInicio: Date | null;
+    fechaFin: Date | null;
+    sucursalId: string;
+  }) {
+    const filtro: any = { id_sucursal: sucursalId };
+    if (fechaInicio) {
+      filtro.fecha = { $gte: fechaInicio };
+    }
+    if (fechaFin) {
+      filtro.fecha = { ...filtro.fecha, $lte: fechaFin };
+    }
+
+    const menus = await this.model
+      .find(filtro)
+      .populate('listaplatos')
+      .exec();
+
+    return menus.map(menu => ({
+      fecha: menu.fecha,
+      platos: menu.listaplatos.map(plato => ({
+        id: plato._id,
+        nombre: plato.nombre,
+        descripcion: plato.descripcion,
+      })),
+    }));
+  }
+
+  // Lógica para el segundo endpoint
+  async calcularIngredientesPorPeriodo(
+    filtro: { fechaInicio: Date; fechaFin: Date; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
+  ): Promise<{
+    sucursal: string;
+    fechaInicio: Date;
+    fechaFin?: Date;
+    ingredientesTotales: { idIngrediente: string; nombreIngrediente: string; cantidad: number; unidadMedida: string }[];
+  }> {
+    const ingredientesTotalesMap: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadMedida: string } } = {};
+
+    const menus = await this.model
+      .find({
+        fecha: { $gte: filtro.fechaInicio, $lte: filtro.fechaFin },
+        id_sucursal: filtro.sucursalId,
+      })
+      .populate('listaplatos')
+      .exec();
+
+    for (const menu of menus) {
+      for (const plato of menu.listaplatos) {
+        const platoConCantidad = filtro.platosConCantidad.find(p => p.platoId === plato._id.toString());
+        const cantidadPlato = platoConCantidad ? platoConCantidad.cantidad : 0;
+
+        const ingredientes = await this.ingredientexplatoModel
+          .find({ id_plato: plato._id })
+          .populate('id_ingrediente')
+          .exec();
+
+        for (const ingrediente of ingredientes) {
+          const { id_ingrediente, porcion_neta } = ingrediente;
+          const totalIngrediente = porcion_neta * cantidadPlato;
+
+          if (ingredientesTotalesMap[id_ingrediente._id]) {
+            ingredientesTotalesMap[id_ingrediente._id].cantidad += totalIngrediente;
+          } else {
+            ingredientesTotalesMap[id_ingrediente._id] = {
+              nombreIngrediente: id_ingrediente.nombreIngrediente,
+              cantidad: totalIngrediente,
+              unidadMedida: id_ingrediente.unidadmedida,
+            };
+          }
+        }
+      }
+    }
+
+    return {
+      sucursal: filtro.sucursalId,
+      fechaInicio: filtro.fechaInicio,
+      fechaFin: filtro.fechaFin,
+      ingredientesTotales: Object.keys(ingredientesTotalesMap).map(id => ({
+        idIngrediente: id,
+        ...ingredientesTotalesMap[id],
+      })),
+    };
+  }
+
+
 
 
 }

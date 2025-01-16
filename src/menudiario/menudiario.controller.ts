@@ -68,21 +68,7 @@ export class MenuDiarioController {
     return this.menuService.addPlato(menuId, platoId);
   }
 
-  @Post('generar-reporte')
-  async generarReporte(
-    @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
-  ) {
-    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
-    // Se pasa todo lo recibido en el cuerpo del POST al servicio
-    return this.menuService.calcularIngredientesPorPeriodo({
-      fechaInicio: new Date(fechaInicio),   // Convertir fechaInicio a Date
-      fechaFin: new Date(fechaFin),         // Convertir fechaFin a Date
-      sucursalId,
-      platosConCantidad,                    // Pasa la lista de platos con cantidad
-    });
-  }
-
-
+ 
   
   @Get('generar-reporte/platos-entre-fechas')
   async getPlatosEntreFechas(
@@ -126,6 +112,33 @@ export class MenuDiarioController {
     }
 
     return await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
+  }
+
+
+  @Get('reporte/obtener-platos')
+  async obtenerPlatos(
+    @Query('fechaInicio') fechaInicio: string,
+    @Query('fechaFin') fechaFin: string,
+    @Query('sucursalId') sucursalId: string,
+  ) {
+    return this.menuService.obtenerPlatosPorFechaSucursal({
+      fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
+      fechaFin: fechaFin ? new Date(fechaFin) : null,
+      sucursalId,
+    });
+  }
+
+  @Post('reporte/calcular-ingredientes')
+  async calcularIngredientes(
+    @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
+  ) {
+    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
+    return this.menuService.calcularIngredientesPorPeriodo({
+      fechaInicio: new Date(fechaInicio),
+      fechaFin: new Date(fechaFin),
+      sucursalId,
+      platosConCantidad,
+    });
   }
 
 }
