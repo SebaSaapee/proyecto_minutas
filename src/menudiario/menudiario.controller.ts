@@ -23,6 +23,7 @@ import { IMenudiario } from 'src/common/interfaces/menudiario.interface';
 import { IPlato } from 'src/common/interfaces/plato.interface';
 import * as ExcelJS from 'exceljs';
 import { Response } from 'express';
+import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
 
@@ -133,68 +134,80 @@ export class MenuDiarioController {
     });
   }
 
-  @Post('reporte/calcular-ingredientes')
-  async calcularIngredientes(
-    @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] },
-    @Res() res, // Para enviar la respuesta con el archivo Excel
-  ) {
-    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
-  
-    // Obtener el reporte de insumos
-    const reporteInsumos = await this.menuService.calcularIngredientesPorPeriodo({
-      fechaInicio: new Date(fechaInicio),
-      fechaFin: new Date(fechaFin),
-      sucursalId,
-      platosConCantidad,
+
+@Post('reporte/calcular-ingredientes')
+async calcularIngredientes(
+  @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] },
+  @Res() res, // Para enviar la respuesta con el archivo Excel
+) {
+  const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
+
+  // Obtener el reporte de insumos
+  const reporteInsumos = await this.menuService.calcularIngredientesPorPeriodo({
+    fechaInicio: new Date(fechaInicio),
+    fechaFin: new Date(fechaFin),
+    sucursalId,
+    platosConCantidad,
+  });
+
+  // Crear el archivo Excel
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Reporte Ingredientes');
+
+  // Definir las columnas del archivo
+  worksheet.columns = [
+    { header: 'Fecha Inicio', key: 'fechaInicio', width: 20 },
+    { header: 'Fecha Fin', key: 'fechaFin', width: 20 },
+    { header: 'Nombre Ingrediente', key: 'nombreIngrediente', width: 30 },
+    { header: 'Unidad de Medida', key: 'unidadMedida', width: 20 },
+    { header: 'Cantidad', key: 'cantidad', width: 15 },
+  ];
+
+  // Agregar los datos
+  reporteInsumos.forEach((item) => {
+    worksheet.addRow({
+      fechaInicio: item.fechaInicio.toLocaleDateString(),
+      fechaFin: item.fechaFin.toLocaleDateString(),
+      nombreIngrediente: item.nombreIngrediente,
+      unidadMedida: item.unidadMedida,
+      cantidad: item.cantidad,
     });
-  
-    // Crear el archivo Excel
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reporte Ingredientes');
-  
-    // Definir las columnas del archivo
-    worksheet.columns = [
-      { header: 'Fecha Inicio', key: 'fechaInicio', width: 20 },
-      { header: 'Fecha Fin', key: 'fechaFin', width: 20 },
-      { header: 'Nombre Ingrediente', key: 'nombreIngrediente', width: 30 },
-      { header: 'Unidad de Medida', key: 'unidadMedida', width: 20 },
-      { header: 'Cantidad', key: 'cantidad', width: 15 },
-    ];
-  
-    // Agregar los datos
-    reporteInsumos.forEach((item) => {
-      worksheet.addRow({
-        fechaInicio: item.fechaInicio.toLocaleDateString(),
-        fechaFin: item.fechaFin.toLocaleDateString(),
-        nombreIngrediente: item.nombreIngrediente,
-        unidadMedida: item.unidadMedida,
-        cantidad: item.cantidad,
-      });
-    });
-  
-    // Asegurarse de que la carpeta 'archivos' exista
-    const folderPath = path.join('C:', 'Users', 'seba_', 'Downloads');
-    if (!fs.existsSync(folderPath)) {
-      fs.mkdirSync(folderPath, { recursive: true }); // Usar `recursive: true` para evitar problemas con subcarpetas
-    }
-  
-    // Crear el nombre del archivo
-    const fileName = `reporte_ingredientes_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
-    const filePath = path.join(folderPath, fileName);
-  
-    try {
-      // Guardar el archivo Excel
-      await workbook.xlsx.writeFile(filePath);
-  
-      // Responder con la ruta del archivo para descarga
-      return res.json({
-        message: 'Archivo generado correctamente',
-        filePath: `/archivos/${fileName}`,
-      });
-    } catch (error) {
-      console.error('Error al guardar el archivo:', error);
-      throw new Error('No se pudo generar el archivo Excel');
-    }
+  });
+
+  // Obtener la ruta de la carpeta de descargas de manera general
+  let downloadsPath;
+  if (os.platform() === 'win32' || os.platform() === 'darwin') {
+    downloadsPath = path.join(os.homedir(), 'Downloads');
+  } else if (os.platform() === 'linux') {
+    downloadsPath = path.join(os.homedir(), 'Descargas');
+  } else {
+    throw new Error('Sistema operativo no soportado para obtener la carpeta de descargas');
   }
+
+  // Asegurarse de que la carpeta 'archivos' exista
+  const folderPath = path.join(downloadsPath, 'archivos');
+  if (!fs.existsSync(folderPath)) {
+    fs.mkdirSync(folderPath, { recursive: true }); // Usar `recursive: true` para evitar problemas con subcarpetas
+  }
+
+  // Crear el nombre del archivo
+  const fileName = `reporte_ingredientes_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
+  const filePath = path.join(folderPath, fileName);
+
+  try {
+    // Guardar el archivo Excel
+    await workbook.xlsx.writeFile(filePath);
+
+    // Responder con la ruta del archivo para descarga
+    return res.json({
+      message: 'Archivo generado correctamente',
+      filePath: `/archivos/${fileName}`,
+    });
+  } catch (error) {
+    console.error('Error al guardar el archivo:', error);
+    throw new Error('No se pudo generar el archivo Excel');
+  }
+}
+
 }
 
