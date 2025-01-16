@@ -6,6 +6,7 @@ import { Model } from 'mongoose';
 import { IMenudiario } from 'src/common/interfaces/menudiario.interface';
 import { IIngredientexplato } from 'src/common/interfaces/ingredientexplato.interface';
 import { IPlato } from 'src/common/interfaces/plato.interface';
+import { IIngrediente } from 'src/common/interfaces/ingrediente.interface';
 
 @Injectable()
 export class MenuDiarioService {
@@ -313,78 +314,57 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
   }
 
   // Lógica para el segundo endpoint
-  async calcularIngredientesPorPeriodo(
-  filtro: { 
-    fechaInicio: Date; 
-    fechaFin: Date; 
-    sucursalId: string; 
-    platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] 
-  },
-): Promise<{
-  sucursal: string;
-  fechaInicio: Date;
-  fechaFin?: Date;
-  ingredientesTotales: { idIngrediente: string; nombreIngrediente: string; cantidad: number; unidadMedida: string }[];
-}> {
-  const ingredientesTotalesMap: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadMedida: string } } = {};
+  async calcularIngredientesPorPeriodo(filtro: {
+    fechaInicio: Date;
+    fechaFin: Date;
+    sucursalId: string;
+    platosConCantidad: { fecha: string; platoId: string; cantidad: number }[];
+  }) {
+    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
 
-  // Obtener los menús dentro del rango de fechas para la sucursal especificada
-  const menus = await this.model
-    .find({
-      fecha: { $gte: filtro.fechaInicio, $lte: filtro.fechaFin },
-      id_sucursal: filtro.sucursalId,
-    })
-    .populate('listaplatos')
-    .exec();
+    // Resultados acumulados de ingredientes
+    const reporteInsumos = [];
 
-  for (const menu of menus) {
-    for (const plato of menu.listaplatos) {
-      // Filtrar platosConCantidad por fecha y platoId correspondiente
-      const platoConCantidad = filtro.platosConCantidad.find(p => 
-        p.platoId === plato._id.toString() && 
-        new Date(p.fecha).toISOString() === menu.fecha.toISOString()
-      );
+    // Iterar sobre los platos con cantidad
+    for (const platoData of platosConCantidad) {
+      const { platoId, cantidad } = platoData;
 
-      // Si se encuentra el plato, se toma la cantidad
-      const cantidadPlato = platoConCantidad ? platoConCantidad.cantidad : 0;
+      // Obtener ingredientes asociados al plato
+      const ingredientesDelPlato = await this.ingredientexplatoModel
+        .find({ id_plato: platoId })
+        .populate('id_ingrediente'); // Popula el ingrediente con su información
 
-      // Obtener los ingredientes del plato
-      const ingredientes = await this.ingredientexplatoModel
-        .find({ id_plato: plato._id })
-        .populate('id_ingrediente')
-        .exec();
+      // Iterar sobre los ingredientes del plato
+      for (const ingredienteData of ingredientesDelPlato) {
+        const { id_ingrediente, porcion_neta, peso_bruto, rendimiento } = ingredienteData;
+        const ingrediente = id_ingrediente as IIngrediente;
 
-      for (const ingrediente of ingredientes) {
-        const { id_ingrediente, porcion_neta } = ingrediente;
-        const totalIngrediente = porcion_neta * cantidadPlato;
+        // Calcular la cantidad de ingrediente necesario
+        const cantidadIngrediente = cantidad * (porcion_neta || 1); // Ajusta según el cálculo de porción
 
-        // Acumular los ingredientes
-        if (ingredientesTotalesMap[id_ingrediente._id]) {
-          ingredientesTotalesMap[id_ingrediente._id].cantidad += totalIngrediente;
+        // Verificar si el ingrediente ya está en el reporte, para acumular
+        const indexIngrediente = reporteInsumos.findIndex(
+          (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
+        );
+
+        if (indexIngrediente !== -1) {
+          // Acumular cantidad de ingrediente
+          reporteInsumos[indexIngrediente].cantidad += cantidadIngrediente;
         } else {
-          ingredientesTotalesMap[id_ingrediente._id] = {
-            nombreIngrediente: id_ingrediente.nombreIngrediente,
-            cantidad: totalIngrediente,
-            unidadMedida: id_ingrediente.unidadmedida,
-          };
+          // Si no está, agregarlo al reporte
+          reporteInsumos.push({
+            ingredienteId: ingrediente._id,
+            nombreIngrediente: ingrediente.nombreIngrediente,
+            unidadMedida: ingrediente.unidadmedida,
+            cantidad: cantidadIngrediente,
+          });
         }
       }
     }
+
+    return reporteInsumos;
   }
-
-  return {
-    sucursal: filtro.sucursalId,
-    fechaInicio: filtro.fechaInicio,
-    fechaFin: filtro.fechaFin,
-    ingredientesTotales: Object.keys(ingredientesTotalesMap).map(id => ({
-      idIngrediente: id,
-      ...ingredientesTotalesMap[id],
-    })),
-  };
 }
 
 
 
-
-
-}
