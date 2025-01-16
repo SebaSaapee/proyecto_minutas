@@ -201,7 +201,7 @@ async calcularIngredientes(
     // Responder con la ruta del archivo para descarga
     return res.json({
       message: 'Archivo generado correctamente',
-      filePath: `/archivos/${fileName}`,
+      filePath: `/Reportes/${fileName}`,
     });
   } catch (error) {
     console.error('Error al guardar el archivo:', error);
