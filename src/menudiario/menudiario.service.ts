@@ -18,7 +18,6 @@ export class MenuDiarioService {
      private readonly platoModel: Model<IPlato>,  
   ) {}
 
-  // Crear menú asegurándose de que no se repita en 12 semanas
   async create(menuDTO: MenuDTO): Promise<IMenudiario> {
     const last12Weeks = new Date();
     last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
@@ -50,24 +49,21 @@ export class MenuDiarioService {
     // Filtramos los platos de ensalada
     const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
     
-    // Validar que el conjunto de ensaladas no tenga más de 3 platos
-    if (platosEnsalada.length !== 3) {
-        throw new BadRequestException('El menú debe contener exactamente 3 ensaladas.');
-    }
+    // Validar que las ensaladas no se repitan (puede haber 1, 2 o 3 platos)
+    if (platosEnsalada.length > 0) {
+        const platosEnsaladaIds = platosEnsalada.map(plato => plato._id);
 
-    // Obtenemos los IDs de las ensaladas
-    const platosEnsaladaIds = platosEnsalada.map(plato => plato._id);
+        // Verificar que no se repita el conjunto de ensaladas en las últimas 4 semanas
+        const existingPlatoEnsalada = await this.model.findOne({
+            createdAt: { $gte: last4Weeks },
+            listaplatos: { $all: platosEnsaladaIds }, // Comprobamos si ya existe el conjunto de ensaladas
+        });
 
-    // Verificar que no se repita el conjunto de ensaladas en las últimas 4 semanas
-    const existingPlatoEnsalada = await this.model.findOne({
-        createdAt: { $gte: last4Weeks },
-        listaplatos: { $all: platosEnsaladaIds }, // Comprobamos si ya existe el conjunto de ensaladas
-    });
-
-    if (existingPlatoEnsalada) {
-        throw new BadRequestException(
-            'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas.',
-        );
+        if (existingPlatoEnsalada) {
+            throw new BadRequestException(
+                'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas.',
+            );
+        }
     }
 
     // Verificar que no se repitan platos de fondo en las últimas 12 semanas
