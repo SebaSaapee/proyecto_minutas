@@ -15,8 +15,7 @@ export class PlatoDTO {
   @IsString()
   readonly categoria: string;
   @ApiProperty()
-  @IsNotEmpty()
-  @IsBoolean()
+  
   readonly descontinuado: boolean;
 
 }
