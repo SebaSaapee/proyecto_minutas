@@ -131,6 +131,7 @@ export class MenuDiarioController {
       fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
       fechaFin: fechaFin ? new Date(fechaFin) : null,
       sucursalId,
+      
     });
   }
 

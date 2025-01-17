@@ -9,6 +9,7 @@ import {
   Put,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -49,4 +50,11 @@ export class IngredienteController {
   delete(@Param('id') id: string) {
     return this.ingredienteService.delete(id);
   }
+
+    // Nueva ruta para buscar ingredientes por nombre
+    @Get('buscar/:nombre')
+    @ApiOperation({ summary: 'Buscar ingredientes por nombre' })
+    findByName(@Param('nombre') nombre: string) {
+      return this.ingredienteService.findByName(nombre);
+    }
 }

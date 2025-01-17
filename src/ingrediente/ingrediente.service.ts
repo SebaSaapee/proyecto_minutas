@@ -37,4 +37,10 @@ export class IngredienteService {
       msg: 'Ingrediente eliminado correctamente',
     };
   }
+
+   // Nueva función para encontrar por nombre
+   async findByName(nombre: string): Promise<IIngrediente[]> {
+    return await this.model.find({ nombre: new RegExp(nombre, 'i') }); // 'i' hace la búsqueda insensible a mayúsculas/minúsculas
+  }
+
 }
