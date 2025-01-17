@@ -38,9 +38,9 @@ export class IngredienteService {
     };
   }
 
-   // Nueva función para encontrar por nombre
-   async findByName(nombre: string): Promise<IIngrediente[]> {
-    return await this.model.find({ nombre: new RegExp(nombre, 'i') }); // 'i' hace la búsqueda insensible a mayúsculas/minúsculas
-  }
+ // Nueva función para encontrar solo 1 ingrediente por nombre
+ async findByName(nombre: string): Promise<IIngrediente | null> {
+  return await this.model.findOne({ nombreIngrediente: new RegExp(nombre, 'i') });
+}
 
 }
