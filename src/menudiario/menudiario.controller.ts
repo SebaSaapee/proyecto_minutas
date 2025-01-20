@@ -161,8 +161,8 @@ async calcularIngredientes(
     { header: 'Fecha Inicio', key: 'fechaInicio', width: 20 },
     { header: 'Fecha Fin', key: 'fechaFin', width: 20 },
     { header: 'Nombre Ingrediente', key: 'nombreIngrediente', width: 30 },
-    { header: 'Unidad de Medida', key: 'unidadMedida', width: 20 },
     { header: 'Cantidad', key: 'cantidad', width: 15 },
+    { header: 'Unidad de Medida', key: 'unidadMedida', width: 20 },
   ];
 
   // Agregar los datos
