@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsDate, IsArray, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PlatoFilaDTO } from './platofila.dto'; // Importa el nuevo DTO
 
 export class MenuDTO {
   @ApiProperty()
@@ -13,20 +14,24 @@ export class MenuDTO {
   @Type(() => Date)
   @IsDate()
   readonly fecha: Date; // Fecha de inicio
+
   @ApiProperty()
   @IsNotEmpty()
   @IsNumber()
   readonly semana: number; // Número de semana
+
   @ApiProperty()
   @IsNotEmpty()
   readonly id_sucursal: string;
+
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   readonly estado: string;
-  @ApiProperty({ type: [String], description: 'Lista de IDs de platos' })
+
+  @ApiProperty({ type: [PlatoFilaDTO], description: 'Lista de platos con sus filas' })
   @IsNotEmpty()
   @IsArray()
-  @IsString({ each: true })
-  readonly listaplatos: string[];
+  @Type(() => PlatoFilaDTO) // Usa el nuevo DTO
+  readonly listaplatos: PlatoFilaDTO[]; // Ahora es un array de PlatoFilaDTO
 }

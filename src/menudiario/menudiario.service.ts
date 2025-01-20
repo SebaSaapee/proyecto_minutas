@@ -7,6 +7,7 @@ import { IMenudiario } from 'src/common/interfaces/menudiario.interface';
 import { IIngredientexplato } from 'src/common/interfaces/ingredientexplato.interface';
 import { IPlato } from 'src/common/interfaces/plato.interface';
 import { IIngrediente } from 'src/common/interfaces/ingrediente.interface';
+import { PlatoFilaDTO } from './dto/platofila.dto';
 
 @Injectable()
 export class MenuDiarioService {
@@ -107,9 +108,18 @@ export class MenuDiarioService {
 
 
 
-  async findAll(): Promise<IMenudiario[]> {
-    return await this.model.find().populate('listaplatos').populate('id_sucursal');
-  }
+async findAll(): Promise<IMenudiario[]> {
+  return await this.model.find()
+    .populate({
+      path: 'listaplatos',
+      populate: {
+        path: 'platoId',
+        model: PLATO.name, 
+      }
+    })
+    .populate('id_sucursal')
+    .exec();
+}
 
 
 
@@ -144,16 +154,35 @@ export class MenuDiarioService {
   }
 
   // Agregar un plato al menú
-  async addPlato(id_menu: string, plato_Id: string): Promise<IMenudiario> {
-    return await this.model
-      .findByIdAndUpdate(
-        id_menu,
-        {
-          $addToSet: { listaplatos: plato_Id },
+  async addPlato(id_menu: string, platoFila: PlatoFilaDTO): Promise<IMenudiario> {
+    // Verificar si el menú existe
+    const menu = await this.model.findById(id_menu);
+    if (!menu) {
+      throw new BadRequestException(`Menú con ID ${id_menu} no encontrado.`);
+    }
+
+    // Verificar si el plato existe
+    const plato = await this.platoModel.findById(platoFila.platoId);
+    if (!plato) {
+      throw new BadRequestException(`Plato con ID ${platoFila.platoId} no encontrado.`);
+    }
+
+    // Añadir el plato con su fila al array listaplatos
+    return await this.model.findByIdAndUpdate(
+      id_menu,
+      {
+        $addToSet: {
+          listaplatos: {
+            platoId: platoFila.platoId,
+            fila: platoFila.fila
+          }
         },
-        { new: true },
-      )
-      .populate('listaplatos');
+      },
+      { new: true },
+    ).populate({
+      path: 'listaplatos.platoId',
+      model: PLATO.name,
+    });
   }
 
   async getPlatosEntreFechas(fechaInicio: Date, fechaFin: Date): Promise<IPlato[]> {
