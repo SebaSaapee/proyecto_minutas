@@ -290,9 +290,7 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
     if (fechaFin) {
       filtro.fecha = { ...filtro.fecha, $lte: fechaFin };
     }
-  
-    // Agregar filtro para estado aprobado
-    filtro.estado = 'Aprobado';  // Filtrar solo los menús con estado "Aprobado"
+
   
     // Consultar los menús con los filtros aplicados
     const menus = await this.model
