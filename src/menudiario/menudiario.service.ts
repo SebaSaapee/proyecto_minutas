@@ -6,6 +6,8 @@ import { Model } from 'mongoose';
 import { IMenudiario } from 'src/common/interfaces/menudiario.interface';
 import { IIngredientexplato } from 'src/common/interfaces/ingredientexplato.interface';
 import { IPlato } from 'src/common/interfaces/plato.interface';
+import { IIngrediente } from 'src/common/interfaces/ingrediente.interface';
+import { PlatoFilaDTO } from './dto/platofila';
 
 @Injectable()
 export class MenuDiarioService {
@@ -109,97 +111,36 @@ export class MenuDiarioService {
   }
 
   // Agregar un plato al menú
-  async addPlato(id_menu: string, plato_Id: string): Promise<IMenudiario> {
-    return await this.model
-      .findByIdAndUpdate(
-        id_menu,
-        {
-          $addToSet: { listaplatos: plato_Id },
-        },
-        { new: true },
-      )
-      .populate('listaplatos');
-  }
-
-
-
-  //Funcion para calcular ingredientes x periodo de tiempo y sucursal.
-  async calcularIngredientesPorPeriodo(
-    filtro: { fechaInicio: Date; fechaFin: Date; sucursalId: string; platosConCantidad: { platoId: string; cantidad: number }[] },
-  ): Promise<{
-    ingredientesTotales: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } };
-    ingredientesPorPlato: { [platoId: string]: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } } };
-  }> {
-    const ingredientesTotales: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } } = {};
-    const ingredientesPorPlato: { [platoId: string]: { [ingredienteId: string]: { nombreIngrediente: string; cantidad: number; unidadmedida: string } } } = {};
-  
-    // Obtener menús del período filtrado por sucursal
-    const menus = await this.model
-      .find({
-        fecha: { $gte: filtro.fechaInicio, $lte: filtro.fechaFin },
-        id_sucursal: filtro.sucursalId,
-      })
-      .populate('listaplatos')
-      .exec();
-  
-    // Procesar cada menú
-    for (const menu of menus) {
-      for (const plato of menu.listaplatos) {
-        // Obtener la cantidad del plato en la lista de platos con cantidad
-        const platoConCantidad = filtro.platosConCantidad.find(p => p.platoId === plato._id.toString());
-        const cantidadPlato = platoConCantidad ? platoConCantidad.cantidad : 0;
-  
-        // Inicializa la entrada del plato si no existe
-        if (!ingredientesPorPlato[plato._id]) {
-          ingredientesPorPlato[plato._id] = {};
-        }
-  
-        // Obtener ingredientes del plato
-        const ingredientesDelPlato = await this.ingredientexplatoModel
-          .find({ id_plato: plato._id })
-          .populate('id_ingrediente')
-          .exec();
-  
-        // Calcular ingredientes necesarios por plato, multiplicados por la cantidad de platos
-        for (const ingredienteDelPlato of ingredientesDelPlato) {
-          const { id_ingrediente, porcion_neta } = ingredienteDelPlato;
-          const ingrediente = id_ingrediente as any;
-  
-          if (porcion_neta) {
-            const cantidadTotalIngrediente = porcion_neta * cantidadPlato;
-  
-            // Sumar al total general de ingredientes
-            if (ingredientesTotales[ingrediente._id]) {
-              ingredientesTotales[ingrediente._id].cantidad += cantidadTotalIngrediente;
-            } else {
-              ingredientesTotales[ingrediente._id] = {
-                nombreIngrediente: ingrediente.nombreIngrediente,
-                cantidad: cantidadTotalIngrediente,
-                unidadmedida: ingrediente.unidadmedida,
-              };
-            }
-  
-            // Sumar al desglose por plato
-            if (ingredientesPorPlato[plato._id][ingrediente._id]) {
-              ingredientesPorPlato[plato._id][ingrediente._id].cantidad += cantidadTotalIngrediente;
-            } else {
-              ingredientesPorPlato[plato._id][ingrediente._id] = {
-                nombreIngrediente: ingrediente.nombreIngrediente,
-                cantidad: cantidadTotalIngrediente,
-                unidadmedida: ingrediente.unidadmedida,
-              };
-            }
-          }
-        }
-      }
+  async addPlato(id_menu: string, platoFila: PlatoFilaDTO): Promise<IMenudiario> {
+    const menu = await this.model.findById(id_menu);
+    if (!menu) {
+      throw new BadRequestException(`Menú con ID ${id_menu} no encontrado.`);
     }
-  
-    return {
-      ingredientesTotales,
-      ingredientesPorPlato,
-    };
+
+    // Verificar si el plato existe
+    const plato = await this.platoModel.findById(platoFila.platoId);
+    if (!plato) {
+      throw new BadRequestException(`Plato con ID ${platoFila.platoId} no encontrado.`);
+    }
+
+    // Añadir el plato con su fila al array listaplatos
+    return await this.model.findByIdAndUpdate(
+      id_menu,
+      {
+        $addToSet: {
+          listaplatos: {
+            platoId:platoFila.platoId,
+            fila: platoFila.fila
+          }
+        },
+      },
+      { new: true },
+    ).populate({
+      path: 'listaplatos.platoId',
+      model: 'platos'
+    });
   }
-  
+
   async getPlatosEntreFechas(fechaInicio: Date, fechaFin: Date): Promise<IPlato[]> {
     // Verificar que las fechas son válidas
     if (isNaN(fechaInicio.getTime()) || isNaN(fechaFin.getTime())) {

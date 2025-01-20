@@ -57,12 +57,13 @@ export class MenuDiarioController {
   async addPlato(
     @Param('menuId') menuId: string,
     @Param('platoId') platoId: string,
+    @Param('filaPlato') fila: string,
   ) {
     const plato = await this.platoService.findOne(platoId);
     if (!plato)
       throw new HttpException('Passenger Not Found', HttpStatus.NOT_FOUND);
 
-    return this.menuService.addPlato(menuId, platoId);
+    return this.menuService.addPlato(menuId, {platoId, fila});
   }
 
   @Post('generar-reporte')
