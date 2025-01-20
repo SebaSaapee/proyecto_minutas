@@ -330,10 +330,10 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
         .populate('id_ingrediente');
 
       for (const ingredienteData of ingredientesDelPlato) {
-        const { id_ingrediente, porcion_neta } = ingredienteData;
+        const { id_ingrediente, peso_bruto} = ingredienteData;
         const ingrediente = id_ingrediente as IIngrediente;
 
-        const cantidadIngrediente = cantidad * (porcion_neta || 1);
+        const cantidadIngrediente = cantidad * (peso_bruto || 1);
 
         const indexIngrediente = reporteInsumos.findIndex(
           (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
