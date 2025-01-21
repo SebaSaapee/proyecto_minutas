@@ -4,7 +4,8 @@ const MenuDiarioSchema = new mongoose.Schema(
   {
     nombre: { type: String, required: true },
     fecha: { type: Date, required: true, unique: true }, 
-    semana: { type: Number, required: true }, // Campo para número de semana
+    semana: { type: Number, required: true },
+    year: { type: Number, required: true },
     id_sucursal: { type: mongoose.Schema.Types.ObjectId, ref: 'sucursales', required: true },
     estado: { type: String, required: true },
     listaplatos: [{ 
