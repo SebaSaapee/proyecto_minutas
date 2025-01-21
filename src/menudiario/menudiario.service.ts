@@ -26,38 +26,48 @@ export class MenuDiarioService {
     const last4Weeks = new Date();
     last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
 
-    // Validar si ya existe un menú con la misma fecha
-    const existingMenu = await this.model.findOne({ fecha: menuDTO.fecha });
+    // Validar si ya existe un menú con la misma fecha, semana y sucursal
+    const existingMenu = await this.model.findOne({
+        fecha: menuDTO.fecha,
+        semana: menuDTO.semana,
+        id_sucursal: menuDTO.id_sucursal,
+    });
     if (existingMenu) {
-        throw new BadRequestException('Ya existe un menú registrado con esta fecha.');
+        throw new BadRequestException('Ya existe un menú registrado con esta fecha, semana y sucursal.');
     }
 
-    // Obtener todos los platos por su ID
-    const platos = await this.platoModel.find({ 
-        '_id': { $in: menuDTO.listaplatos } // Filtramos los platos por los IDs de la lista
+    // Obtener los platos por sus IDs
+    const platosIds = menuDTO.listaplatos.map(item => item.platoId); // Extraemos los platoId de la lista
+    const platos = await this.platoModel.find({
+        '_id': { $in: platosIds }
     });
 
-    // Filtramos los platos según su categoría
-    const platosFondoIds = platos.filter(plato => plato.categoria === 'PLATO DE FONDO').map(plato => plato._id);
-    const platosRestrictivosIds = platos.filter(plato =>
-        ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria)
-    ).map(plato => plato._id);
+    // Clasificar los platos según su categoría
+    const platosFondoIds = platos
+        .filter(plato => plato.categoria === 'PLATO DE FONDO')
+        .map(plato => plato._id.toString());
 
-    const otrosPlatosIds = platos.filter(plato =>
-        !['PLATO DE FONDO', 'VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria)
-    ).map(plato => plato._id);
+    const platosRestrictivosIds = platos
+        .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
+        .map(plato => plato._id.toString());
 
-    // Filtramos los platos de ensalada
+    const otrosPlatosIds = platos
+        .filter(plato => !['PLATO DE FONDO', 'VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
+        .map(plato => plato._id.toString());
+
     const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
-    
-    // Validar que las ensaladas no se repitan (puede haber 1, 2 o 3 platos)
-    if (platosEnsalada.length > 0) {
-        const platosEnsaladaIds = platosEnsalada.map(plato => plato._id);
 
-        // Verificar que no se repita el conjunto de ensaladas en las últimas 4 semanas
+    // Validar que las ensaladas no se repitan en las últimas 4 semanas
+    if (platosEnsalada.length > 0) {
+        const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
+
         const existingPlatoEnsalada = await this.model.findOne({
             createdAt: { $gte: last4Weeks },
-            listaplatos: { $all: platosEnsaladaIds }, // Comprobamos si ya existe el conjunto de ensaladas
+            listaplatos: {
+                $elemMatch: {
+                    platoId: { $in: platosEnsaladaIds }
+                }
+            }
         });
 
         if (existingPlatoEnsalada) {
@@ -70,7 +80,11 @@ export class MenuDiarioService {
     // Verificar que no se repitan platos de fondo en las últimas 12 semanas
     const existingPlatoFondo = await this.model.findOne({
         createdAt: { $gte: last12Weeks },
-        listaplatos: { $in: platosFondoIds }, // Comprobamos si hay algún plato de fondo repetido
+        listaplatos: {
+            $elemMatch: {
+                platoId: { $in: platosFondoIds }
+            }
+        }
     });
 
     if (existingPlatoFondo) {
@@ -79,10 +93,14 @@ export class MenuDiarioService {
         );
     }
 
-    // Verificar que no se repitan platos restrictivos (vegetariano, vegano, guarnición) en las últimas 4 semanas
+    // Verificar que no se repitan platos restrictivos en las últimas 4 semanas
     const existingPlatoRestrictivo = await this.model.findOne({
         createdAt: { $gte: last4Weeks },
-        listaplatos: { $in: platosRestrictivosIds }, // Comprobamos si hay algún plato restrictivo repetido
+        listaplatos: {
+            $elemMatch: {
+                platoId: { $in: platosRestrictivosIds }
+            }
+        }
     });
 
     if (existingPlatoRestrictivo) {
@@ -91,14 +109,13 @@ export class MenuDiarioService {
         );
     }
 
-    // Verificar que no haya platos repetidos en todo el menú (todos los platos por su ID)
-    const allPlatosIds = [...platosFondoIds, ...platosRestrictivosIds, ...otrosPlatosIds];
-    const platosUnicos = new Set(allPlatosIds.map(platoId => platoId.toString())); // Usamos Set para eliminar duplicados
-    if (platosUnicos.size !== allPlatosIds.length) {
+    // Verificar que no haya platos repetidos en `listaplatos`
+    const uniquePlatos = new Set(menuDTO.listaplatos.map(item => item.platoId.toString()));
+    if (uniquePlatos.size !== menuDTO.listaplatos.length) {
         throw new BadRequestException('Hay platos repetidos en el menú.');
     }
 
-    // Si no se encontraron duplicados, creamos el nuevo menú
+    // Si no hay errores, crear el nuevo menú
     const newMenu = new this.model(menuDTO);
     return await newMenu.save();
 }
