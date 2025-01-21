@@ -19,6 +19,8 @@ export class MenuDiarioService {
      private readonly platoModel: Model<IPlato>,  
   ) {}
 
+
+
   async create(menuDTO: MenuDTO): Promise<IMenudiario> {
     const last12Weeks = new Date();
     last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
@@ -109,20 +111,33 @@ export class MenuDiarioService {
         );
     }
 
-    // Verificar que no haya platos repetidos en `listaplatos`
+    // Verificar que no haya platos repetidos en `listaplatos`, exceptuando los vegetales y veganos
     const uniquePlatos = new Set(menuDTO.listaplatos.map(item => item.platoId.toString()));
+
+    // Obtener los platos por su ID para verificar las categorías
+    const platosVegetarianosYVeganos = menuDTO.listaplatos.filter(item => 
+        ['VEGETARIANO', 'VEGANA'].includes(platos.find(plato => plato._id.toString() === item.platoId).categoria)
+    );
+
     if (uniquePlatos.size !== menuDTO.listaplatos.length) {
-        throw new BadRequestException('Hay platos repetidos en el menú.');
+        // Filtra los platos que son vegetarianos y veganos
+        const vegetarianosYVeganosIds = platosVegetarianosYVeganos
+            .map(item => item.platoId.toString());
+
+        // Si la cantidad de platos vegetarianos y veganos es mayor que 1, considera que son los mismos
+        if (vegetarianosYVeganosIds.length === 1) {
+            // Se permite si solo hay un plato repetido entre vegetariano y vegano
+            if (new Set(vegetarianosYVeganosIds).size === 1) {
+                return;  // No lanzar excepción si hay un solo plato
+            }
+        }
+
     }
 
     // Si no hay errores, crear el nuevo menú
     const newMenu = new this.model(menuDTO);
     return await newMenu.save();
 }
-
-
-
-
 
 
 async findAll(): Promise<IMenudiario[]> {
