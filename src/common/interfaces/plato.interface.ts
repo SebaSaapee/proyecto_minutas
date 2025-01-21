@@ -1,5 +1,5 @@
 export interface IPlato extends Document {
-  _id?:string;
+  platoId?;
   nombre: string;
   descripcion: string;
   categoria: string;

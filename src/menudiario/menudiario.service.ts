@@ -328,6 +328,8 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
       ...postres,
     ];
   }
+
+
   async obtenerPlatosPorFechaSucursal({
     fechaInicio,
     fechaFin,
@@ -354,25 +356,27 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
 
   
     // Consultar los menús con los filtros aplicados
-    const menus = await this.model
-      .find(filtro)
-      .populate('listaplatos')
-      .exec();
+   const menus = await this.model
+  .find(filtro)
+  .populate({
+    path: 'listaplatos'              // El modelo con el que deseas hacer el populate
+  })
+  .exec();
   
     // Formatear la respuesta para incluir solo los datos requeridos
+    console.log(menus)
     return menus.map(menu => ({
-      sucursal: menu.id_sucursal, // Incluye la sucursal en la respuesta
+      sucursal: menu.id_sucursal,
       fecha: menu.fecha,
       platos: menu.listaplatos.map(plato => ({
-        id: plato._id,
-        nombre: plato.nombre,
-        descripcion: plato.descripcion,
+        id: plato.platoId._id,  // Accedes al ID del plato
+        nombre: plato.platoId.nombre,  // Accedes al nombre del plato
+        descripcion: plato.platoId.descripcion,  // Accedes a la descripción del plato
       })),
     }));
-  }
   // Lógica para el segundo endpoint
   
-  
+  }
   async calcularIngredientesPorPeriodo(filtro: {
     fechaInicio: Date;
     fechaFin: Date;
