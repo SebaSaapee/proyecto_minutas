@@ -351,32 +351,30 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
     if (fechaFin) {
       filtro.fecha = { ...filtro.fecha, $lte: fechaFin };
     }
-
-    const menus = await this.model
-  .find(filtro)
-  .populate({
-    path: 'listaplatos'
-  })
-  .exec();
   
-    menus.map(m => {
-      m.listaplatos.map(p => {
-        console.log(p.platoId)
+    // CORRECCIÓN, modelo plato en populate
+    const menus = await this.model
+      .find(filtro)
+      .populate({
+        path: 'listaplatos',
+        populate: { 
+          path: 'platoId',
+          model: PLATO.name 
+        }
       })
-    })
-    
+      .exec();
+  
     return menus.map(menu => ({
       sucursal: menu.id_sucursal,
       fecha: menu.fecha,
-      platos: menu.listaplatos.map(plato => ({
-        id: plato.platoId._id,  // Accedes al ID del plato
-        nombre: plato.platoId.nombre,  // Accedes al nombre del plato
-        descripcion: plato.platoId.descripcion,  // Accedes a la descripción del plato
+      platos: menu.listaplatos.map(item => ({
+        id: item.platoId._id,
+        nombre: item.platoId.nombre,
+        descripcion: item.platoId.descripcion,
       })),
     }));
-  // Lógica para el segundo endpoint
-  
   }
+
   async calcularIngredientesPorPeriodo(filtro: {
     fechaInicio: Date;
     fechaFin: Date;
