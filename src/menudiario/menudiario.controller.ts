@@ -151,7 +151,8 @@ async calcularIngredientes(
     sucursalId,
     platosConCantidad,
   });
-
+   console.log("controler")
+   console.log(fechaInicio)
   // Crear el archivo Excel
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Reporte Ingredientes');
@@ -168,8 +169,8 @@ async calcularIngredientes(
   // Agregar los datos
   reporteInsumos.forEach((item) => {
     worksheet.addRow({
-      fechaInicio: item.fechaInicio.toLocaleDateString(),
-      fechaFin: item.fechaFin.toLocaleDateString(),
+      fechaInicio: item.fechaInicio,
+      fechaFin: item.fechaFin,
       nombreIngrediente: item.nombreIngrediente,
       unidadMedida: item.unidadMedida,
       cantidad: item.cantidad,

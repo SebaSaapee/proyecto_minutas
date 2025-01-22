@@ -341,18 +341,36 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
   }) {
     const filtro: any = {};
   
+    // Filtrar por sucursal
     if (sucursalId) {
       filtro.id_sucursal = sucursalId;
     }
   
-    if (fechaInicio) {
-      filtro.fecha = { $gte: fechaInicio };
+    if (fechaInicio && fechaFin) {
+      // Ajustar fechaInicio y fechaFin a UTC (00:00:00 y 23:59:59.999)
+      fechaInicio.setHours(0, 0, 0, 0);  // Al inicio del día (00:00:00)
+      fechaFin.setHours(23, 59, 59, 999); // Al final del día (23:59:59.999)
+    
+      // Convertir las fechas a UTC antes de la consulta
+      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
+      const fechaFinUTC = new Date(Date.UTC(fechaFin.getUTCFullYear(), fechaFin.getUTCMonth(), fechaFin.getUTCDate(), 23, 59, 59, 999));
+    
+      filtro.fecha = { $gte: fechaInicioUTC, $lte: fechaFinUTC };
+    } else if (fechaInicio) {
+      // Ajustar solo fechaInicio a UTC
+      fechaInicio.setHours(0, 0, 0, 0);
+      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
+      filtro.fecha = { $gte: fechaInicioUTC };
+    } else if (fechaFin) {
+      // Ajustar solo fechaFin a UTC
+      fechaFin.setHours(23, 59, 59, 999);
+      const fechaFinUTC = new Date(Date.UTC(fechaFin.getUTCFullYear(), fechaFin.getUTCMonth(), fechaFin.getUTCDate(), 23, 59, 59, 999));
+      filtro.fecha = { $lte: fechaFinUTC };
     }
-    if (fechaFin) {
-      filtro.fecha = { ...filtro.fecha, $lte: fechaFin };
-    }
+      
+      
   
-    // CORRECCIÓN, modelo plato en populate
+    // Realizar la consulta con el filtro y populando los platos
     const menus = await this.model
       .find(filtro)
       .populate({
@@ -364,6 +382,7 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
       })
       .exec();
   
+    // Devolver los datos de los platos
     return menus.map(menu => ({
       sucursal: menu.id_sucursal,
       fecha: menu.fecha,
@@ -375,50 +394,75 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
     }));
   }
 
-  async calcularIngredientesPorPeriodo(filtro: {
-    fechaInicio: Date;
-    fechaFin: Date;
-    sucursalId: string;
-    platosConCantidad: { fecha: string; platoId: string; cantidad: number }[];
-  }) {
-    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
+async calcularIngredientesPorPeriodo(filtro: {
+  fechaInicio: Date;
+  fechaFin: Date;
+  sucursalId: string;
+  platosConCantidad: { fecha: string; platoId: string; cantidad: number }[];
+}) {
+  const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
 
-    const reporteInsumos = [];
+  const reporteInsumos = [];
 
-    for (const platoData of platosConCantidad) {
-      const { platoId, cantidad } = platoData;
+  // Ajustar fechas a UTC
+  const rangoFechas = {
+    fechaInicio: fechaInicio
+      ? new Date(
+          fechaInicio.getFullYear(),
+          fechaInicio.getMonth(),
+          fechaInicio.getDate(),
+          23, 0, 0, 0 // Inicio del día a las 6:00 AM
+        )
+      : null,
+    fechaFin: fechaFin
+      ? new Date(
+          fechaFin.getFullYear(),
+          fechaFin.getMonth(),
+          fechaFin.getDate(),
+          23, 0, 0, 0 // Fin del día a las 11:00 PM
+        )
+      : null,
+  };
 
-      const ingredientesDelPlato = await this.ingredientexplatoModel
-        .find({ id_plato: platoId })
-        .populate('id_ingrediente');
 
-      for (const ingredienteData of ingredientesDelPlato) {
-        const { id_ingrediente, peso_bruto} = ingredienteData;
-        const ingrediente = id_ingrediente as IIngrediente;
+  console.log(fechaFin,fechaInicio)
+  for (const platoData of platosConCantidad) {
+    const { platoId, cantidad } = platoData;
 
-        const cantidadIngrediente = cantidad * (peso_bruto || 1);
+    const ingredientesDelPlato = await this.ingredientexplatoModel
+      .find({ id_plato: platoId })
+      .populate('id_ingrediente');
 
-        const indexIngrediente = reporteInsumos.findIndex(
-          (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
-        );
+    for (const ingredienteData of ingredientesDelPlato) {
+      const { id_ingrediente, peso_bruto } = ingredienteData;
+      const ingrediente = id_ingrediente as IIngrediente;
 
-        if (indexIngrediente !== -1) {
-          reporteInsumos[indexIngrediente].cantidad += cantidadIngrediente;
-        } else {
-          reporteInsumos.push({
-            ingredienteId: ingrediente._id,
-            nombreIngrediente: ingrediente.nombreIngrediente,
-            unidadMedida: ingrediente.unidadmedida,
-            cantidad: cantidadIngrediente,
-            fechaInicio,
-            fechaFin,
-          });
-        }
+      // Calcular la cantidad de ingrediente
+      const cantidadIngrediente = cantidad * (peso_bruto || 1);
+
+      const indexIngrediente = reporteInsumos.findIndex(
+        (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
+      );
+
+      if (indexIngrediente !== -1) {
+        reporteInsumos[indexIngrediente].cantidad += cantidadIngrediente;
+      } else {
+        console.log("nazi")
+        console.log(rangoFechas)
+        reporteInsumos.push({
+          ingredienteId: ingrediente._id,
+          nombreIngrediente: ingrediente.nombreIngrediente,
+          unidadMedida: ingrediente.unidadmedida,
+          cantidad: cantidadIngrediente,
+          fechaInicio: rangoFechas.fechaInicio,
+          fechaFin: rangoFechas.fechaFin
+        });
       }
     }
-
-    return reporteInsumos;
   }
+  console.log(reporteInsumos)
+  return reporteInsumos;
+}
   }
 
 
