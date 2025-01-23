@@ -153,11 +153,11 @@ async calcularIngredientes(
   });
    console.log("controler")
    console.log(fechaInicio)
-  // Crear el archivo Excel
+
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Reporte Ingredientes');
 
-  // Definir las columnas del archivo
+ 
   worksheet.columns = [
     { header: 'Fecha Inicio', key: 'fechaInicio', width: 20 },
     { header: 'Fecha Fin', key: 'fechaFin', width: 20 },
@@ -166,7 +166,7 @@ async calcularIngredientes(
     { header: 'Unidad de Medida', key: 'unidadMedida', width: 20 },
   ];
 
-  // Agregar los datos
+  
   reporteInsumos.forEach((item) => {
     worksheet.addRow({
       fechaInicio: item.fechaInicio,
@@ -177,7 +177,6 @@ async calcularIngredientes(
     });
   });
 
-  // Obtener la ruta de la carpeta de descargas de manera general
   let downloadsPath;
   if (os.platform() === 'win32' || os.platform() === 'darwin') {
     downloadsPath = path.join(os.homedir(), 'Downloads');
@@ -187,21 +186,21 @@ async calcularIngredientes(
     throw new Error('Sistema operativo no soportado para obtener la carpeta de descargas');
   }
 
-  // Asegurarse de que la carpeta 'archivos' exista
+ 
   const folderPath = path.join(downloadsPath, 'archivos');
   if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath, { recursive: true }); // Usar `recursive: true` para evitar problemas con subcarpetas
+    fs.mkdirSync(folderPath, { recursive: true }); // 
   }
 
-  // Crear el nombre del archivo
+ 
   const fileName = `reporte_ingredientes_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
   const filePath = path.join(folderPath, fileName);
 
   try {
-    // Guardar el archivo Excel
+    
     await workbook.xlsx.writeFile(filePath);
 
-    // Responder con la ruta del archivo para descarga
+    
     return res.json({
       message: 'Archivo generado correctamente',
       filePath: `/Reportes/${fileName}`,
