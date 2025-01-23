@@ -12,8 +12,8 @@ export class PlatoService {
   ) {}
 
   async create(platoDTO: PlatoDTO): Promise<IPlato> {
-    const newPassenger = new this.model(platoDTO);
-    return await newPassenger.save();
+    const newPlato = new this.model(platoDTO);
+    return await newPlato.save();
   }
 
   async findAll(): Promise<IPlato[]> {
@@ -24,8 +24,8 @@ export class PlatoService {
     return await this.model.findById(id);
   }
 
-  async update(id: string, passengerDTO: PlatoDTO): Promise<IPlato> {
-    return await this.model.findByIdAndUpdate(id, PlatoDTO, { new: true });
+  async update(id: string, platoDto: PlatoDTO): Promise<IPlato> {
+    return await this.model.findByIdAndUpdate(id, platoDto, { new: true });
   }
 
   async delete(id: string) {
