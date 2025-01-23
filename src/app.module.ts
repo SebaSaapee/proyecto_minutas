@@ -14,6 +14,7 @@ import { RecetaModule } from './receta/receta.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 
 import * as path from 'path';  // Asegúrate de que esta línea esté presente
+import { ProyeccionModule } from './proyeccion/proyeccion.module';
 
 @Module({
   imports: [
@@ -30,12 +31,9 @@ import * as path from 'path';  // Asegúrate de que esta línea esté presente
     IngredienteModule,
     IngredientexplatoModule,
     RecetaModule,
+    ProyeccionModule
 
-    // Configuración de ruta estática para los archivos en 'reports'
-    ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'reports'), // Carpeta donde se almacenarán los archivos
-      serveRoot: '/reports', // URL base para acceder a los archivos
-    }),
+   
   ],
   controllers: [AppController],
   providers: [AppService],
