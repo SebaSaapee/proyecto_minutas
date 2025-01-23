@@ -7,5 +7,5 @@ export class ProyeccionDTO {
   @IsDateString()
   readonly fecha: Date;
   @ApiProperty()
-  readonly lista: { Nombreplato: string; cantidad: string }[];
+  readonly lista: { fecha: string; Nombreplato: string; cantidad: string }[];
 }

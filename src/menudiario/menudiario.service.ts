@@ -404,7 +404,6 @@ async calcularIngredientesPorPeriodo(filtro: {
 
   const reporteInsumos = [];
 
-  // Ajustar fechas a UTC
   const rangoFechas = {
     fechaInicio: fechaInicio
       ? new Date(
