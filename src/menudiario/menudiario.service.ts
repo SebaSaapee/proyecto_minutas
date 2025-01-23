@@ -411,7 +411,7 @@ async calcularIngredientesPorPeriodo(filtro: {
           fechaInicio.getFullYear(),
           fechaInicio.getMonth(),
           fechaInicio.getDate(),
-          23, 0, 0, 0 // Inicio del día a las 6:00 AM
+          23, 0, 0, 0 
         )
       : null,
     fechaFin: fechaFin
@@ -419,7 +419,7 @@ async calcularIngredientesPorPeriodo(filtro: {
           fechaFin.getFullYear(),
           fechaFin.getMonth(),
           fechaFin.getDate(),
-          23, 0, 0, 0 // Fin del día a las 11:00 PM
+          23, 0, 0, 0 
         )
       : null,
   };
@@ -437,7 +437,7 @@ async calcularIngredientesPorPeriodo(filtro: {
       const { id_ingrediente, peso_bruto } = ingredienteData;
       const ingrediente = id_ingrediente as IIngrediente;
 
-      // Calcular la cantidad de ingrediente
+      
       const cantidadIngrediente = cantidad * (peso_bruto || 1);
 
       const indexIngrediente = reporteInsumos.findIndex(
