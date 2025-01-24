@@ -2,6 +2,7 @@ import { Document } from 'mongoose';
 
 export interface IProyeccion extends Document {
   fecha: Date;
+  nombreSucursal: string;
   lista: {
     fecha: string;
     Nombreplato: string;

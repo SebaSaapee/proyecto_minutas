@@ -6,6 +6,11 @@ export class ProyeccionDTO {
   @IsNotEmpty()
   @IsDateString()
   readonly fecha: Date;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  readonly nombreSucursal: string;
+
   @ApiProperty()
   readonly lista: { fecha: string; Nombreplato: string; cantidad: string }[];
 }
