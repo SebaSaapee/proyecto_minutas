@@ -337,18 +337,16 @@ async aprobarMenu(id: string, aprobado: boolean) {
   async obtenerPlatosPorFechaSucursal({
     fechaInicio,
     fechaFin,
-    sucursalId,
+    
   }: {
     fechaInicio: Date | null;
     fechaFin: Date | null;
-    sucursalId: string;
+    
   }) {
     const filtro: any = {};
     console.log(fechaInicio,fechaFin)
     // Filtrar por   sucursal
-    if (sucursalId) {
-      filtro.id_sucursal = sucursalId;
-    }
+    
   
     if (fechaInicio && fechaFin) {
       // Ajustar fechaInicio y fechaFin a UTC (00:00:00 y 23:59:59.999)

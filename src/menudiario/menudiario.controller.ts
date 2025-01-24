@@ -126,13 +126,10 @@ export class MenuDiarioController {
   async obtenerPlatos(
     @Query('fechaInicio') fechaInicio: string,
     @Query('fechaFin') fechaFin: string,
-    @Query('sucursalId') sucursalId: string,
   ) {
     return this.menuService.obtenerPlatosPorFechaSucursal({
       fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
       fechaFin: fechaFin ? new Date(fechaFin) : null,
-      sucursalId,
-      
     });
   }
 
