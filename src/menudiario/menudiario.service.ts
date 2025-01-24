@@ -227,6 +227,8 @@ async findAll(): Promise<IMenudiario[]> {
       throw new BadRequestException('La fecha de inicio no puede ser posterior a la fecha de fin.');
     }
 
+    console.log(fechaInicio,fechaFin);
+
     // Obtener los menús que se encuentran en el rango de fechas
     const menus = await this.model
       .find({
@@ -234,11 +236,12 @@ async findAll(): Promise<IMenudiario[]> {
       })
       .populate('listaplatos') // Poblar los platos de cada menú
       .exec();
-
+      
     // Crear un set para evitar platos duplicados
     const platosSet = new Set<IPlato>();
-
+    console.log(menus);
     // Recorrer los menús y agregar los platos al set
+
     menus.forEach(menu => {
       menu.listaplatos.forEach(plato => {
         platosSet.add(plato); // Añadimos los platos únicos
@@ -341,15 +344,15 @@ async aprobarMenu(id: string, aprobado: boolean) {
     sucursalId: string;
   }) {
     const filtro: any = {};
-  
-    // Filtrar por sucursal
+    console.log(fechaInicio,fechaFin)
+    // Filtrar por   sucursal
     if (sucursalId) {
       filtro.id_sucursal = sucursalId;
     }
   
     if (fechaInicio && fechaFin) {
       // Ajustar fechaInicio y fechaFin a UTC (00:00:00 y 23:59:59.999)
-      fechaInicio.setHours(0, 0, 0, 0);  // Al inicio del día (00:00:00)
+      fechaInicio.setHours(23, 0, 0, 0);  // Al inicio del día (00:00:00)
       fechaFin.setHours(23, 59, 59, 999); // Al final del día (23:59:59.999)
     
       // Convertir las fechas a UTC antes de la consulta
@@ -359,7 +362,7 @@ async aprobarMenu(id: string, aprobado: boolean) {
       filtro.fecha = { $gte: fechaInicioUTC, $lte: fechaFinUTC };
     } else if (fechaInicio) {
       // Ajustar solo fechaInicio a UTC
-      fechaInicio.setHours(0, 0, 0, 0);
+      fechaInicio.setHours(23, 0, 0, 0);
       const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
       filtro.fecha = { $gte: fechaInicioUTC };
     } else if (fechaFin) {
@@ -369,7 +372,7 @@ async aprobarMenu(id: string, aprobado: boolean) {
       filtro.fecha = { $lte: fechaFinUTC };
     }
       
-      
+    console.log(fechaInicio,fechaFin)
   
     // Realizar la consulta con el filtro y populando los platos
     const menus = await this.model
