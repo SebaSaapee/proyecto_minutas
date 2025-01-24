@@ -259,7 +259,7 @@ async aprobarMenu(id: string, aprobado: boolean) {
 }
 
 
-async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
+  async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
     const fechaInicio = new Date(fecha); // Clonamos la fecha para no modificar la original
 
     // Obtenemos la fecha de inicio para el rango de 12 semanas (platos de fondo)
@@ -285,26 +285,26 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
     // Verificar si existen platos de fondo repetidos en las últimas 12 semanas
     const platosFondoRepetidos = await this.model.find({
       fecha: { $gte: fechaInicio12Semanas, $lt: fechaInicio },
-      'listaplatos': { $in: platosFondo.map(plato => plato._id) },
+      'listaplatos.platoId': { $in: platosFondo.map(plato => plato._id) },
     });
 
     // Verificar si existen platos restrictivos repetidos en las últimas 4 semanas
     const platosRestrictivosRepetidos = await this.model.find({
       fecha: { $gte: fechaInicio4Semanas, $lt: fechaInicio },
-      'listaplatos': { $in: platosRestrictivos.map(plato => plato._id) },
+      'listaplatos.platoId': { $in: platosRestrictivos.map(plato => plato._id) },
     });
 
     // Verificar si existen combinaciones de ensaladas repetidas en las últimas 4 semanas
     const combinacionesEnsaladasRepetidas = await this.model.find({
       fecha: { $gte: fechaInicio4Semanas, $lt: fechaInicio },
-      'listaplatos': { $all: ensaladas.map(plato => plato._id) },
+      'listaplatos.platoId': { $all: ensaladas.map(plato => plato._id) },
     });
 
     // Filtrar platos que no están disponibles
     const platosFondoDisponibles = platosFondo.filter(plato =>
       !platosFondoRepetidos.some(menu =>
-        menu.listaplatos.some(listaPlato => listaPlato.toString() === plato._id.toString()),
-      ),
+        menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
+      )
     );
 
     const platosRestrictivosDisponibles = platosRestrictivos.filter(plato =>
@@ -315,7 +315,7 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
 
     const ensaladasDisponibles = ensaladas.filter(plato =>
       !combinacionesEnsaladasRepetidas.some(menu =>
-        menu.listaplatos.some(listaPlato => listaPlato.toString() === plato._id.toString()),
+        menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
       ),
     );
 
