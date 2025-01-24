@@ -8,8 +8,8 @@ export const UserSchema = new mongoose.Schema(
     password: { type: String, required: true },
     role: { 
       type: String, 
-      enum: ["user", "admin", "logistica","gerencia"], // Valores permitidos para "role"
-      default: "user" // Valor por defecto
+      enum: ["nutricionista", "admin", "logistica"], // Valores permitidos para "role"
+      default: "nutricionista" // Valor por defecto
     }
   },
   { timestamps: true },

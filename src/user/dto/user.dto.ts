@@ -23,11 +23,11 @@ export class UserDTO {
   readonly password: string;
 
   @ApiProperty({
-    enum: ['user', 'admin', 'logistica','gerencia'], // Documenta los valores permitidos
-    default: 'user', // Valor por defecto que se muestra en Swagger
+    enum: ['nutricionista', 'admin', 'logistica'], // Documenta los valores permitidos
+    default: 'nutricionista', // Valor por defecto que se muestra en Swagger
   })
   @IsOptional() // El campo es opcional, ya que tiene un valor por defecto
   @IsString()
-  @IsIn(['user', 'admin', 'logistica','gerencia']) // Valida que sea uno de los valores permitidos
-  readonly role?: string = 'user'; // Valor por defecto en el DTO
+  @IsIn(['nutricionista', 'admin', 'logistica']) // Valida que sea uno de los valores permitidos
+  readonly role?: string = 'nutricionista'; // Valor por defecto en el DTO
 }
