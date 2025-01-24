@@ -306,12 +306,13 @@ async aprobarMenu(id: string, aprobado: boolean) {
         menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
       )
     );
-
+    
     const platosRestrictivosDisponibles = platosRestrictivos.filter(plato =>
       !platosRestrictivosRepetidos.some(menu =>
-        menu.listaplatos.some(listaPlato => listaPlato.toString() === plato._id.toString()),
+        menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
       ),
     );
+    console.log('platosRestrictivosDisponibles despues del filtro:', platosRestrictivosDisponibles);
 
     const ensaladasDisponibles = ensaladas.filter(plato =>
       !combinacionesEnsaladasRepetidas.some(menu =>
