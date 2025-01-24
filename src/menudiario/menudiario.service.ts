@@ -239,7 +239,7 @@ async findAll(): Promise<IMenudiario[]> {
       
     // Crear un set para evitar platos duplicados
     const platosSet = new Set<IPlato>();
-    console.log(menus);
+    
     // Recorrer los menús y agregar los platos al set
 
     menus.forEach(menu => {
@@ -463,7 +463,7 @@ async calcularIngredientesPorPeriodo(filtro: {
       }
     }
   }
-  console.log(reporteInsumos)
+  
   return reporteInsumos;
 }
   }
