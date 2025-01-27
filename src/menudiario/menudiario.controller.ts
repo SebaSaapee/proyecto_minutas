@@ -208,5 +208,15 @@ async calcularIngredientes(
   }
 }
 
+@Post('/validate-menus')
+async validateMenus(@Body() menusDTO: MenuDTO[]): Promise<{ valid: boolean; errors: { index: number; error: string }[] }> {
+    const errors = await this.menuService.validateBatch(menusDTO);
+
+    return {
+        valid: errors.length === 0,
+        errors,
+    };
+}
+
 }
 
