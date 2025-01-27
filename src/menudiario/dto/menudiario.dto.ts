@@ -26,6 +26,10 @@ export class MenuDTO {
 
   @ApiProperty()
   @IsNotEmpty()
+  readonly year: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
   @IsString()
   readonly estado: string;
 
