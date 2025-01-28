@@ -51,27 +51,6 @@ export class MenuDiarioService {
         .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
         .map(plato => plato._id.toString());
 
-    const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
-
-    // Validar que las ensaladas no se repitan en las últimas 4 semanas
-    if (platosEnsalada.length > 0) {
-      const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
-
-      const existingPlatoEnsalada = await this.model.findOne({
-        fecha: { $gte: last4Weeks }, 
-        listaplatos: {
-          $elemMatch: {
-            platoId: { $in: platosEnsaladaIds }
-          }
-        }
-      });
-
-      if (existingPlatoEnsalada) {
-        throw new BadRequestException(
-          'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas del mismo año.',
-        );
-      }
-    }
 
     // Verificar que no se repitan platos de fondo en las últimas 12 semanas
     const existingPlatoFondo = await this.model.findOne({
