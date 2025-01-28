@@ -19,21 +19,18 @@ export class MenuDiarioService {
      private readonly platoModel: Model<IPlato>,  
   ) {}
 
-
-
   async create(menuDTO: MenuDTO): Promise<IMenudiario> {
-    const last12Weeks = new Date();
+    const last12Weeks = new Date(menuDTO.fecha);
     last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
 
-    const last4Weeks = new Date();
+    const last4Weeks = new Date(menuDTO.fecha);
     last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
 
     // Validar si ya existe un menú con la misma fecha, semana y sucursal
     const existingMenu = await this.model.findOne({
-        fecha: menuDTO.fecha,
-        semana: menuDTO.semana,
-        year: menuDTO.year, // Validar el mismo año
-        id_sucursal: menuDTO.id_sucursal,
+      fecha: menuDTO.fecha,
+      semana: menuDTO.semana,
+      year: menuDTO.year,
     });
     if (existingMenu) {
         throw new BadRequestException('Ya existe un menú registrado con esta fecha, semana, año y sucursal.');
@@ -58,49 +55,43 @@ export class MenuDiarioService {
 
     // Validar que las ensaladas no se repitan en las últimas 4 semanas
     if (platosEnsalada.length > 0) {
-        const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
+      const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
 
-        const existingPlatoEnsalada = await this.model.findOne({
-            fecha: { $gte: last4Weeks }, // Validar rango de fecha
-            id_sucursal: menuDTO.id_sucursal, // Validar sucursal
-            year: menuDTO.year, // Asegurar que sea el mismo año
-            listaplatos: {
-                $elemMatch: {
-                    platoId: { $in: platosEnsaladaIds }
-                }
-            }
-        });
-
-        if (existingPlatoEnsalada) {
-            throw new BadRequestException(
-                'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas del mismo año.',
-            );
+      const existingPlatoEnsalada = await this.model.findOne({
+        fecha: { $gte: last4Weeks }, 
+        listaplatos: {
+          $elemMatch: {
+            platoId: { $in: platosEnsaladaIds }
+          }
         }
+      });
+
+      if (existingPlatoEnsalada) {
+        throw new BadRequestException(
+          'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas del mismo año.',
+        );
+      }
     }
 
     // Verificar que no se repitan platos de fondo en las últimas 12 semanas
     const existingPlatoFondo = await this.model.findOne({
-        fecha: { $gte: last12Weeks }, // Validar rango de fecha
-        id_sucursal: menuDTO.id_sucursal, // Validar sucursal
-        year: menuDTO.year, // Asegurar que sea el mismo año
-        listaplatos: {
-            $elemMatch: {
-                platoId: { $in: platosFondoIds }
-            }
+      fecha: { $gte: last12Weeks }, 
+      listaplatos: {
+        $elemMatch: {
+          platoId: { $in: platosFondoIds }
         }
+      }
     });
 
     if (existingPlatoFondo) {
-        throw new BadRequestException(
-            'Un menú con los mismos platos de fondo ya existe en las últimas 12 semanas del mismo año.',
-        );
+      throw new BadRequestException(
+        `El plato ${existingPlatoFondo.nombre} ya existe en las ultimas 12 semanas`,
+      );
     }
 
     // Verificar que no se repitan platos restrictivos en las últimas 4 semanas
     const existingPlatoRestrictivo = await this.model.findOne({
-        fecha: { $gte: last4Weeks }, // Validar rango de fecha
-        id_sucursal: menuDTO.id_sucursal, // Validar sucursal
-        year: menuDTO.year, // Asegurar que sea el mismo año
+        fecha: { $gte: last4Weeks },
         listaplatos: {
             $elemMatch: {
                 platoId: { $in: platosRestrictivosIds }
@@ -117,24 +108,19 @@ export class MenuDiarioService {
     // Si no hay errores, crear el nuevo menú
     const newMenu = new this.model(menuDTO);
     return await newMenu.save();
-}
+  }
 
-
-
-async findAll(): Promise<IMenudiario[]> {
-  return await this.model.find()
-    .populate({
-      path: 'listaplatos',
-      populate: {
-        path: 'platoId',
-        model: PLATO.name, 
-      }
-    })
-    .populate('id_sucursal')
-    .exec();
-}
-
-
+  async findAll(): Promise<IMenudiario[]> {
+    return await this.model.find()
+      .populate({
+        path: 'listaplatos',
+        populate: {
+          path: 'platoId',
+          model: PLATO.name, 
+        }
+      })
+      .exec();
+  }
 
   async findOne(id: string): Promise<IMenudiario> {
     const menu = await this.model.findById(id).populate('listaplatos');
@@ -360,7 +346,6 @@ async aprobarMenu(id: string, aprobado: boolean) {
   
     // Devolver los datos de los platos
     return menus.map(menu => ({
-      sucursal: menu.id_sucursal,
       fecha: menu.fecha,
       platos: menu.listaplatos.map(item => ({
         id: item.platoId._id,
@@ -450,65 +435,62 @@ async aprobarMenu(id: string, aprobado: boolean) {
   }
 
   async validarMenu(menuDTO: MenuDTO): Promise<void> {
-    const last12Weeks = new Date();
+    const last12Weeks = new Date(menuDTO.fecha);
     last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
-
-    const last4Weeks = new Date();
+    const last4Weeks = new Date(menuDTO.fecha);
     last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
-
+    
     // Validar si ya existe un menú con la misma fecha, semana, año y sucursal
     const existingMenu = await this.model.findOne({
-        fecha: menuDTO.fecha,
-        semana: menuDTO.semana,
-        year: menuDTO.year,
-        id_sucursal: menuDTO.id_sucursal,
+      fecha: menuDTO.fecha,
+      semana: menuDTO.semana,
+      year: menuDTO.year,
     });
+
     if (existingMenu) {
-        throw new BadRequestException('Ya existe un menú registrado con esta fecha, semana, año y sucursal.');
+      throw new BadRequestException('Ya existe un menú registrado con esta fecha, semana, año y sucursal.');
     }
 
     // Obtener los platos por sus IDs
     const platosIds = menuDTO.listaplatos.map(item => item.platoId);
     const platos = await this.platoModel.find({
-        '_id': { $in: platosIds }
+      '_id': { $in: platosIds }
     });
 
     // Clasificar los platos según su categoría
     const platosFondoIds = platos
-        .filter(plato => plato.categoria === 'PLATO DE FONDO')
-        .map(plato => plato._id.toString());
+      .filter(plato => plato.categoria === 'PLATO DE FONDO')
+      .map(plato => plato._id.toString());
 
     const platosRestrictivosIds = platos
-        .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
-        .map(plato => plato._id.toString());
+      .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
+      .map(plato => plato._id.toString());
 
     const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
 
     // Validar que las ensaladas no se repitan en las últimas 4 semanas
     if (platosEnsalada.length > 0) {
-        const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
+      const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
 
-        const existingPlatoEnsalada = await this.model.findOne({
-            fecha: { $gte: last4Weeks },
-            id_sucursal: menuDTO.id_sucursal,
-            listaplatos: {
-                $elemMatch: {
-                    platoId: { $in: platosEnsaladaIds }
-                }
-            }
-        });
-
-        if (existingPlatoEnsalada) {
-            throw new BadRequestException(
-                'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas del mismo año.',
-            );
+      const existingPlatoEnsalada = await this.model.findOne({
+        fecha: { $gte: last4Weeks },
+        listaplatos: {
+          $elemMatch: {
+            platoId: { $in: platosEnsaladaIds }
+          }
         }
+      });
+
+      if (existingPlatoEnsalada) {
+        throw new BadRequestException(
+          'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas del mismo año.',
+        );
+      }
     }
 
     // Validar que los platos de fondo no se repitan en las últimas 12 semanas
     const existingPlatoFondo = await this.model.findOne({
         fecha: { $gte: last12Weeks },
-        id_sucursal: menuDTO.id_sucursal,
         listaplatos: {
             $elemMatch: {
                 platoId: { $in: platosFondoIds }
@@ -518,14 +500,13 @@ async aprobarMenu(id: string, aprobado: boolean) {
 
     if (existingPlatoFondo) {
         throw new BadRequestException(
-            'Un menú con los mismos platos de fondo ya existe en las últimas 12 semanas del mismo año.',
+          `El plato ${existingPlatoFondo.nombre} ya existe en las ultimas 12 semanas`,
         );
     }
 
     // Validar que los platos restrictivos no se repitan en las últimas 4 semanas
     const existingPlatoRestrictivo = await this.model.findOne({
         fecha: { $gte: last4Weeks },
-        id_sucursal: menuDTO.id_sucursal,
         listaplatos: {
             $elemMatch: {
                 platoId: { $in: platosRestrictivosIds }
@@ -535,7 +516,7 @@ async aprobarMenu(id: string, aprobado: boolean) {
 
     if (existingPlatoRestrictivo) {
         throw new BadRequestException(
-            'Un menú con los mismos platos vegetarianos, veganos o de guarnición ya existe en las últimas 4 semanas del mismo año.',
+          `El plato ${existingPlatoRestrictivo.nombre} ya existe en las ultimas 4 semanas`,
         );
     }
   }
