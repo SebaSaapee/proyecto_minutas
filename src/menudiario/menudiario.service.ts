@@ -208,8 +208,6 @@ async findAll(): Promise<IMenudiario[]> {
       throw new BadRequestException('La fecha de inicio no puede ser posterior a la fecha de fin.');
     }
 
-    console.log(fechaInicio,fechaFin);
-
     // Obtener los menús que se encuentran en el rango de fechas
     const menus = await this.model
       .find({
@@ -296,7 +294,6 @@ async aprobarMenu(id: string, aprobado: boolean) {
         menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
       ),
     );
-    console.log('platosRestrictivosDisponibles despues del filtro:', platosRestrictivosDisponibles);
 
     const ensaladasDisponibles = ensaladas.filter(plato =>
       !combinacionesEnsaladasRepetidas.some(menu =>
@@ -325,14 +322,12 @@ async aprobarMenu(id: string, aprobado: boolean) {
     
   }) {
     const filtro: any = {};
-    console.log(fechaInicio,fechaFin)
-    // Filtrar por   sucursal
-    
-  
+
+    // Filtrar por   sucursal  
     if (fechaInicio && fechaFin) {
       // Ajustar fechaInicio y fechaFin a UTC (00:00:00 y 23:59:59.999)
-      fechaInicio.setHours(23, 0, 0, 0);  // Al inicio del día (00:00:00)
-      fechaFin.setHours(23, 59, 59, 999); // Al final del día (23:59:59.999)
+      fechaInicio.setHours(23, 0, 0, 0);  
+      fechaFin.setHours(23, 59, 59, 999);
     
       // Convertir las fechas a UTC antes de la consulta
       const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
@@ -350,8 +345,6 @@ async aprobarMenu(id: string, aprobado: boolean) {
       const fechaFinUTC = new Date(Date.UTC(fechaFin.getUTCFullYear(), fechaFin.getUTCMonth(), fechaFin.getUTCDate(), 23, 59, 59, 999));
       filtro.fecha = { $lte: fechaFinUTC };
     }
-      
-    console.log(fechaInicio,fechaFin)
   
     // Realizar la consulta con el filtro y populando los platos
     const menus = await this.model
@@ -377,185 +370,176 @@ async aprobarMenu(id: string, aprobado: boolean) {
     }));
   }
 
-async calcularIngredientesPorPeriodo(filtro: {
-  fechaInicio: Date;
-  fechaFin: Date;
-  sucursalId: string;
-  platosConCantidad: { fecha: string; platoId: string; cantidad: number }[];
-}) {
-  const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
+  async calcularIngredientesPorPeriodo(filtro: {
+    fechaInicio: Date;
+    fechaFin: Date;
+    sucursalId: string;
+    platosConCantidad: { fecha: string; platoId: string; cantidad: number }[];
+  }) {
+    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
 
-  const reporteInsumos = [];
+    const reporteInsumos = [];
 
-  const rangoFechas = {
-    fechaInicio: fechaInicio
-      ? new Date(
-          fechaInicio.getFullYear(),
-          fechaInicio.getMonth(),
-          fechaInicio.getDate(),
-          23, 0, 0, 0 
-        )
-      : null,
-    fechaFin: fechaFin
-      ? new Date(
-          fechaFin.getFullYear(),
-          fechaFin.getMonth(),
-          fechaFin.getDate(),
-          23, 0, 0, 0 
-        )
-      : null,
-  };
+    const rangoFechas = {
+      fechaInicio: fechaInicio
+        ? new Date(
+            fechaInicio.getFullYear(),
+            fechaInicio.getMonth(),
+            fechaInicio.getDate(),
+            23, 0, 0, 0 
+          )
+        : null,
+      fechaFin: fechaFin
+        ? new Date(
+            fechaFin.getFullYear(),
+            fechaFin.getMonth(),
+            fechaFin.getDate(),
+            23, 0, 0, 0 
+          )
+        : null,
+    };
 
+    for (const platoData of platosConCantidad) {
+      const { platoId, cantidad } = platoData;
 
-  console.log(fechaFin,fechaInicio)
-  for (const platoData of platosConCantidad) {
-    const { platoId, cantidad } = platoData;
+      const ingredientesDelPlato = await this.ingredientexplatoModel
+        .find({ id_plato: platoId })
+        .populate('id_ingrediente');
 
-    const ingredientesDelPlato = await this.ingredientexplatoModel
-      .find({ id_plato: platoId })
-      .populate('id_ingrediente');
+      for (const ingredienteData of ingredientesDelPlato) {
+        const { id_ingrediente, peso_bruto } = ingredienteData;
+        const ingrediente = id_ingrediente as IIngrediente;
 
-    for (const ingredienteData of ingredientesDelPlato) {
-      const { id_ingrediente, peso_bruto } = ingredienteData;
-      const ingrediente = id_ingrediente as IIngrediente;
+        
+        const cantidadIngrediente = cantidad * (peso_bruto || 1);
 
-      
-      const cantidadIngrediente = cantidad * (peso_bruto || 1);
+        const indexIngrediente = reporteInsumos.findIndex(
+          (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
+        );
 
-      const indexIngrediente = reporteInsumos.findIndex(
-        (item) => item.ingredienteId.toString() === ingrediente._id.toString(),
-      );
-
-      if (indexIngrediente !== -1) {
-        reporteInsumos[indexIngrediente].cantidad += cantidadIngrediente;
-      } else {
-        console.log("nazi")
-        console.log(rangoFechas)
-        reporteInsumos.push({
-          ingredienteId: ingrediente._id,
-          nombreIngrediente: ingrediente.nombreIngrediente,
-          unidadMedida: ingrediente.unidadmedida,
-          cantidad: cantidadIngrediente,
-          fechaInicio: rangoFechas.fechaInicio,
-          fechaFin: rangoFechas.fechaFin
-        });
+        if (indexIngrediente !== -1) {
+          reporteInsumos[indexIngrediente].cantidad += cantidadIngrediente;
+        } else {
+          reporteInsumos.push({
+            ingredienteId: ingrediente._id,
+            nombreIngrediente: ingrediente.nombreIngrediente,
+            unidadMedida: ingrediente.unidadmedida,
+            cantidad: cantidadIngrediente,
+            fechaInicio: rangoFechas.fechaInicio,
+            fechaFin: rangoFechas.fechaFin
+          });
+        }
       }
     }
-  }
-  
-  return reporteInsumos;
-}
-
-async validateBatch(menusDTO: MenuDTO[]): Promise<{ index: number; error: string }[]> {
-  const errors: { index: number; error: string }[] = [];
-
-  for (let i = 0; i < menusDTO.length; i++) {
-      try {
-          await this.validarMenu(menusDTO[i]);
-      } catch (error) {
-          errors.push({ index: i, error: error.message });
-      }
+    
+    return reporteInsumos;
   }
 
-  return errors;
-}
+  async validateBatch(menusDTO: MenuDTO[]): Promise<{ index: number; error: string }[]> {
+    const errors: { index: number; error: string }[] = [];
 
-async validarMenu(menuDTO: MenuDTO): Promise<void> {
-  const last12Weeks = new Date();
-  last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
+    for (let i = 0; i < menusDTO.length; i++) {
+        try {
+            await this.validarMenu(menusDTO[i]);
+        } catch (error) {
+            errors.push({ index: i, error: error.message });
+        }
+    }
 
-  const last4Weeks = new Date();
-  last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
-
-  // Validar si ya existe un menú con la misma fecha, semana, año y sucursal
-  const existingMenu = await this.model.findOne({
-      fecha: menuDTO.fecha,
-      semana: menuDTO.semana,
-      year: menuDTO.year,
-      id_sucursal: menuDTO.id_sucursal,
-  });
-  if (existingMenu) {
-      throw new BadRequestException('Ya existe un menú registrado con esta fecha, semana, año y sucursal.');
+    return errors;
   }
 
-  // Obtener los platos por sus IDs
-  const platosIds = menuDTO.listaplatos.map(item => item.platoId);
-  const platos = await this.platoModel.find({
-      '_id': { $in: platosIds }
-  });
+  async validarMenu(menuDTO: MenuDTO): Promise<void> {
+    const last12Weeks = new Date();
+    last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
 
-  // Clasificar los platos según su categoría
-  const platosFondoIds = platos
-      .filter(plato => plato.categoria === 'PLATO DE FONDO')
-      .map(plato => plato._id.toString());
+    const last4Weeks = new Date();
+    last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
 
-  const platosRestrictivosIds = platos
-      .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
-      .map(plato => plato._id.toString());
+    // Validar si ya existe un menú con la misma fecha, semana, año y sucursal
+    const existingMenu = await this.model.findOne({
+        fecha: menuDTO.fecha,
+        semana: menuDTO.semana,
+        year: menuDTO.year,
+        id_sucursal: menuDTO.id_sucursal,
+    });
+    if (existingMenu) {
+        throw new BadRequestException('Ya existe un menú registrado con esta fecha, semana, año y sucursal.');
+    }
 
-  const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
+    // Obtener los platos por sus IDs
+    const platosIds = menuDTO.listaplatos.map(item => item.platoId);
+    const platos = await this.platoModel.find({
+        '_id': { $in: platosIds }
+    });
 
-  // Validar que las ensaladas no se repitan en las últimas 4 semanas
-  if (platosEnsalada.length > 0) {
-      const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
+    // Clasificar los platos según su categoría
+    const platosFondoIds = platos
+        .filter(plato => plato.categoria === 'PLATO DE FONDO')
+        .map(plato => plato._id.toString());
 
-      const existingPlatoEnsalada = await this.model.findOne({
-          fecha: { $gte: last4Weeks },
-          year: menuDTO.year, // Asegurar que sea el mismo año
-          id_sucursal: menuDTO.id_sucursal,
-          listaplatos: {
-              $elemMatch: {
-                  platoId: { $in: platosEnsaladaIds }
-              }
-          }
-      });
+    const platosRestrictivosIds = platos
+        .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
+        .map(plato => plato._id.toString());
 
-      if (existingPlatoEnsalada) {
-          throw new BadRequestException(
-              'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas del mismo año.',
-          );
-      }
-  }
+    const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
 
-  // Validar que los platos de fondo no se repitan en las últimas 12 semanas
-  const existingPlatoFondo = await this.model.findOne({
-      fecha: { $gte: last12Weeks },
-      year: menuDTO.year, // Asegurar que sea el mismo año
-      id_sucursal: menuDTO.id_sucursal,
-      listaplatos: {
-          $elemMatch: {
-              platoId: { $in: platosFondoIds }
-          }
-      }
-  });
+    // Validar que las ensaladas no se repitan en las últimas 4 semanas
+    if (platosEnsalada.length > 0) {
+        const platosEnsaladaIds = platosEnsalada.map(plato => plato._id.toString());
 
-  if (existingPlatoFondo) {
-      throw new BadRequestException(
-          'Un menú con los mismos platos de fondo ya existe en las últimas 12 semanas del mismo año.',
-      );
-  }
+        const existingPlatoEnsalada = await this.model.findOne({
+            fecha: { $gte: last4Weeks },
+            id_sucursal: menuDTO.id_sucursal,
+            listaplatos: {
+                $elemMatch: {
+                    platoId: { $in: platosEnsaladaIds }
+                }
+            }
+        });
 
-  // Validar que los platos restrictivos no se repitan en las últimas 4 semanas
-  const existingPlatoRestrictivo = await this.model.findOne({
-      fecha: { $gte: last4Weeks },
-      year: menuDTO.year, // Asegurar que sea el mismo año
-      id_sucursal: menuDTO.id_sucursal,
-      listaplatos: {
-          $elemMatch: {
-              platoId: { $in: platosRestrictivosIds }
-          }
-      }
-  });
+        if (existingPlatoEnsalada) {
+            throw new BadRequestException(
+                'Un menú con el mismo conjunto de ensaladas ya existe en las últimas 4 semanas del mismo año.',
+            );
+        }
+    }
 
-  if (existingPlatoRestrictivo) {
-      throw new BadRequestException(
-          'Un menú con los mismos platos vegetarianos, veganos o de guarnición ya existe en las últimas 4 semanas del mismo año.',
-      );
+    // Validar que los platos de fondo no se repitan en las últimas 12 semanas
+    const existingPlatoFondo = await this.model.findOne({
+        fecha: { $gte: last12Weeks },
+        id_sucursal: menuDTO.id_sucursal,
+        listaplatos: {
+            $elemMatch: {
+                platoId: { $in: platosFondoIds }
+            }
+        }
+    });
+
+    if (existingPlatoFondo) {
+        throw new BadRequestException(
+            'Un menú con los mismos platos de fondo ya existe en las últimas 12 semanas del mismo año.',
+        );
+    }
+
+    // Validar que los platos restrictivos no se repitan en las últimas 4 semanas
+    const existingPlatoRestrictivo = await this.model.findOne({
+        fecha: { $gte: last4Weeks },
+        id_sucursal: menuDTO.id_sucursal,
+        listaplatos: {
+            $elemMatch: {
+                platoId: { $in: platosRestrictivosIds }
+            }
+        }
+    });
+
+    if (existingPlatoRestrictivo) {
+        throw new BadRequestException(
+            'Un menú con los mismos platos vegetarianos, veganos o de guarnición ya existe en las últimas 4 semanas del mismo año.',
+        );
+    }
   }
 }
-
-
-  }
 
 
 
