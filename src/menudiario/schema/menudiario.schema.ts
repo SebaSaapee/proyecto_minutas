@@ -6,7 +6,6 @@ const MenuDiarioSchema = new mongoose.Schema(
     fecha: { type: Date, required: true, unique: true }, 
     semana: { type: Number, required: true },
     year: { type: Number, required: true },
-    id_sucursal: { type: mongoose.Schema.Types.ObjectId, ref: 'sucursales', required: true },
     estado: { type: String, required: true },
     listaplatos: [{ 
       platoId: { type: mongoose.Schema.Types.ObjectId, ref: 'platos', required: true },

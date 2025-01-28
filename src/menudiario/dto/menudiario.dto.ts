@@ -22,10 +22,6 @@ export class MenuDTO {
 
   @ApiProperty()
   @IsNotEmpty()
-  readonly id_sucursal: string;
-
-  @ApiProperty()
-  @IsNotEmpty()
   readonly year: number;
 
   @ApiProperty()
