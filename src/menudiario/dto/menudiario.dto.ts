@@ -34,4 +34,7 @@ export class MenuDTO {
   @IsArray()
   @Type(() => PlatoFilaDTO) // Usa el nuevo DTO
   readonly listaplatos: PlatoFilaDTO[]; // Ahora es un array de PlatoFilaDTO
+
+  @ApiProperty()
+  readonly mensaje: string;
 }
