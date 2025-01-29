@@ -26,14 +26,14 @@ export class MenuDiarioService {
     const last4Weeks = new Date(menuDTO.fecha);
     last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
 
-    // Validar si ya existe un menú con la misma fecha, semana y sucursal
+    // Validar si ya existe un menú con la misma fecha, semana
     const existingMenu = await this.model.findOne({
       fecha: menuDTO.fecha,
       semana: menuDTO.semana,
       year: menuDTO.year,
     });
     if (existingMenu) {
-        throw new BadRequestException('Ya existe un menú registrado con esta fecha, semana, año y sucursal.');
+        throw new BadRequestException('Ya existe un menú registrado con esta semana y año');
     }
 
     // Obtener los platos por sus IDs
@@ -48,7 +48,7 @@ export class MenuDiarioService {
         .map(plato => plato._id.toString());
 
     const platosRestrictivosIds = platos
-        .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
+        .filter(plato => ['VEGANA/VEGETARIANA', 'GUARNICIÓN'].includes(plato.categoria))
         .map(plato => plato._id.toString());
 
 
@@ -223,7 +223,7 @@ async aprobarMenu(id: string, aprobado: boolean) {
     // Filtrar platos por categoría
     const platosFondo = platos.filter(plato => plato.categoria === 'PLATO DE FONDO');
     const platosRestrictivos = platos.filter(plato =>
-      ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN', 'HIPOCALORICO'].includes(plato.categoria),
+      ['VEGANA/VEGETARIANA', 'GUARNICIÓN', 'HIPOCALORICO'].includes(plato.categoria),
     );
     const ensaladas = platos.filter(plato => plato.categoria === 'ENSALADA');
     const sopas = platos.filter(plato => plato.categoria === 'SOPA' || plato.categoria === 'CREMAS');
@@ -442,7 +442,7 @@ async aprobarMenu(id: string, aprobado: boolean) {
       .map(plato => plato._id.toString());
 
     const platosRestrictivosIds = platos
-      .filter(plato => ['VEGETARIANO', 'VEGANA', 'GUARNICIÓN'].includes(plato.categoria))
+      .filter(plato => ['VEGANA/VEGETARIANA', 'GUARNICIÓN'].includes(plato.categoria))
       .map(plato => plato._id.toString());
 
     const platosEnsalada = platos.filter(plato => plato.categoria === 'ENSALADA');
