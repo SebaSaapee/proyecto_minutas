@@ -12,7 +12,7 @@ const MenuDiarioSchema = new mongoose.Schema(
       fila: { type: String, required: true }
     }],
     aprobado: { type: Boolean, required: false },
-    mensaje:{type: String}
+    mensaje: { type: String, default: 'sin mensaje' } 
   },
   { timestamps: true },
 );
