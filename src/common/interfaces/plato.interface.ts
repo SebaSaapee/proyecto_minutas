@@ -1,8 +1,13 @@
 export interface IPlato extends Document {
   platoId?;
   nombre: string;
-  descripcion: string;
   categoria: string;
+  descontinuado: boolean;
+  familia: string;
+  tipo_corte: string;
+  temporada: string;
   createdAt?: Date;
   updatedAt?: Date;
+
+  
 }

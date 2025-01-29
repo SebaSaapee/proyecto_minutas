@@ -15,6 +15,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 
 import * as path from 'path';  // Asegúrate de que esta línea esté presente
 import { ProyeccionModule } from './proyeccion/proyeccion.module';
+import { EstructuraModule } from './estructura/estructura.module';
 
 @Module({
   imports: [
@@ -31,7 +32,8 @@ import { ProyeccionModule } from './proyeccion/proyeccion.module';
     IngredienteModule,
     IngredientexplatoModule,
     RecetaModule,
-    ProyeccionModule
+    ProyeccionModule,
+    EstructuraModule,
 
    
   ],
