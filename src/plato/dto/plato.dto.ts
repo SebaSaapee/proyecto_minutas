@@ -6,16 +6,20 @@ export class PlatoDTO {
   @IsNotEmpty()
   @IsString()
   readonly nombre: string;
-  @ApiProperty()
-  @IsNotEmpty()
-  @IsString()
-  readonly descripcion: string;
+  
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
   readonly categoria: string;
   @ApiProperty()
-  
   readonly descontinuado: boolean;
+  @ApiProperty()
+  readonly familia: string;
+  @ApiProperty()
+  readonly tipo_corte: string;
+  @ApiProperty()
+  readonly temporada: string;
 
+
+  
 }
