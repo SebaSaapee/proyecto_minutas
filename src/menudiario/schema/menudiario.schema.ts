@@ -11,7 +11,8 @@ const MenuDiarioSchema = new mongoose.Schema(
       platoId: { type: mongoose.Schema.Types.ObjectId, ref: 'platos', required: true },
       fila: { type: String, required: true }
     }],
-    aprobado: { type: Boolean, required: false }
+    aprobado: { type: Boolean, required: false },
+    mensaje:{type: String}
   },
   { timestamps: true },
 );
