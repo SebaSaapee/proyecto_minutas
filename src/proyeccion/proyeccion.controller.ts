@@ -44,5 +44,10 @@ import {
     delete(@Param('id') id: string) {
       return this.proyeccionService.delete(id);
     }
+
+    @Get(':id/reporte-insumos')
+    async generateIngredientReport(@Param('id') proyeccionId: string) {
+        return this.proyeccionService.generateIngredientReportForProjection(proyeccionId);
+    }
   }
   

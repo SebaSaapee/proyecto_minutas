@@ -5,6 +5,7 @@ export interface IProyeccion extends Document {
   nombreSucursal: string;
   lista: {
     fecha: string;
+    platoid: string
     Nombreplato: string;
     cantidad: string;
   }[];

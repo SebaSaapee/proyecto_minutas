@@ -12,5 +12,5 @@ export class ProyeccionDTO {
   readonly nombreSucursal: string;
 
   @ApiProperty()
-  readonly lista: { fecha: string; Nombreplato: string; cantidad: string }[];
+  readonly lista: { platoid: string , fecha: string; Nombreplato: string; cantidad: string }[];
 }
