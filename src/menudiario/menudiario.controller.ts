@@ -218,5 +218,16 @@ async validateMenus(@Body() menusDTO: MenuDTO[]): Promise<{ valid: boolean; erro
     };
 }
 
+@Patch(':id/mensaje')
+async updateMensaje(
+  @Param('id') id: string,
+  @Body('mensaje') mensaje: string,
+) {
+  if (!mensaje || typeof mensaje !== 'string') {
+    throw new BadRequestException('El atributo "mensaje" es obligatorio y debe ser una cadena de texto.');
+  }
+
+  return await this.menuService.updateMensaje(id, mensaje);
+}
 }
 

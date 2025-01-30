@@ -499,6 +499,17 @@ async aprobarMenu(id: string, aprobado: boolean) {
         );
     }
   }
+
+
+  async updateMensaje(id: string, mensaje: string): Promise<IMenudiario> {
+    const menu = await this.model.findById(id);
+    if (!menu) {
+      throw new BadRequestException('Menú no encontrado');
+    }
+  
+    menu.mensaje = mensaje; // Actualizamos solo el atributo mensaje
+    return await menu.save(); // Guardamos los cambios en la base de datos
+  }
 }
 
 
