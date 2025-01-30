@@ -8,6 +8,7 @@ export interface IMenudiario extends Document {
   id_sucursal: ISucursal;
   estado: string;
   listaplatos: IPlato[];
+  mensaje: String;
   createdAt?: Date;
   updatedAt?: Date;
   
