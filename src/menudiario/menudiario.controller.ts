@@ -134,80 +134,103 @@ export class MenuDiarioController {
   }
 
 
-@Post('reporte/calcular-ingredientes')
-async calcularIngredientes(
-  @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] },
-  @Res() res, // Para enviar la respuesta con el archivo Excel
-) {
-  const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
-
-  // Obtener el reporte de insumos
-  const reporteInsumos = await this.menuService.calcularIngredientesPorPeriodo({
-    fechaInicio: new Date(fechaInicio),
-    fechaFin: new Date(fechaFin),
-    sucursalId,
-    platosConCantidad,
-  });
-   console.log("controler")
-   console.log(fechaInicio)
-
-  const workbook = new ExcelJS.Workbook();
-  const worksheet = workbook.addWorksheet('Reporte Ingredientes');
-
- 
-  worksheet.columns = [
-    { header: 'Fecha Inicio', key: 'fechaInicio', width: 20 },
-    { header: 'Fecha Fin', key: 'fechaFin', width: 20 },
-    { header: 'Nombre Ingrediente', key: 'nombreIngrediente', width: 30 },
-    { header: 'Cantidad', key: 'cantidad', width: 15 },
-    { header: 'Unidad de Medida', key: 'unidadMedida', width: 20 },
-  ];
-
+  @Post('reporte/calcular-ingredientes')
+  async calcularIngredientes(
+    @Body() filtro: { fechaInicio: string; fechaFin: string; sucursalId: string; platosConCantidad: { fecha: string; platoId: string; cantidad: number }[] },
+    @Res() res, // Para enviar la respuesta con el archivo Excel
+  ) {
+    const { fechaInicio, fechaFin, sucursalId, platosConCantidad } = filtro;
   
-  reporteInsumos.forEach((item) => {
-    worksheet.addRow({
-      fechaInicio: item.fechaInicio,
-      fechaFin: item.fechaFin,
-      nombreIngrediente: item.nombreIngrediente,
-      unidadMedida: item.unidadMedida,
-      cantidad: item.cantidad,
+    // Obtener el reporte de insumos
+    const reporteInsumos = await this.menuService.calcularIngredientesPorPeriodo({
+      fechaInicio: new Date(fechaInicio),
+      fechaFin: new Date(fechaFin),
+      sucursalId,
+      platosConCantidad,
     });
-  });
-
-  let downloadsPath;
-  if (os.platform() === 'win32' || os.platform() === 'darwin') {
-    downloadsPath = path.join(os.homedir(), 'Downloads');
-  } else if (os.platform() === 'linux') {
-    downloadsPath = path.join(os.homedir(), 'Descargas');
-  } else {
-    throw new Error('Sistema operativo no soportado para obtener la carpeta de descargas');
-  }
-
- 
-  const folderPath = path.join(downloadsPath, 'archivos');
-  if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath, { recursive: true }); // 
-  }
-
- 
-  const fileName = `reporte_ingredientes_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
-  const filePath = path.join(folderPath, fileName);
-
-  try {
-    
-    await workbook.xlsx.writeFile(filePath);
-
-    
-    return res.json({
-      message: 'Archivo generado correctamente',
-      filePath: `/Reportes/${fileName}`,
+  
+    console.log("controler");
+    console.log(fechaInicio);
+  
+    // Crear un nuevo libro de Excel
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Reporte Ingredientes');
+  
+    // Definir las columnas
+    worksheet.columns = [
+      { header: 'Fecha Inicio', key: 'fechaInicio', width: 20 },
+      { header: 'Fecha Fin', key: 'fechaFin', width: 20 },
+      { header: 'Nombre Ingrediente', key: 'nombreIngrediente', width: 30 },
+      { header: 'Cantidad', key: 'cantidad', width: 15 },
+      { header: 'Unidad de Medida', key: 'unidadMedida', width: 20 },
+    ];
+  
+    // Añadir datos al Excel
+    let rowIndex = 2; // Empezamos desde la fila 2 (debajo del encabezado)
+    reporteInsumos.forEach((item) => {
+      const row = worksheet.addRow({
+        fechaInicio: item.fechaInicio,
+        fechaFin: item.fechaFin,
+        nombreIngrediente: item.nombreIngrediente,
+        unidadMedida: item.unidadMedida,
+        cantidad: item.cantidad,
+      });
+  
+      // Alternar colores de fondo
+      const fillColor = rowIndex % 2 === 0 ? 'FFC6EFCE' : 'FFFFFFFF'; // Verde claro o blanco
+      row.eachCell((cell) => {
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: fillColor },
+        };
+      });
+  
+      rowIndex++;
     });
-  } catch (error) {
-    console.error('Error al guardar el archivo:', error);
-    throw new Error('No se pudo generar el archivo Excel');
+  
+    // Estilo del encabezado
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FFD3D3D3' }, // Gris claro para el encabezado
+      };
+      cell.font = { bold: true };
+    });
+  
+    // Guardar el archivo en la carpeta de descargas
+    let downloadsPath;
+    if (os.platform() === 'win32' || os.platform() === 'darwin') {
+      downloadsPath = path.join(os.homedir(), 'Downloads');
+    } else if (os.platform() === 'linux') {
+      downloadsPath = path.join(os.homedir(), 'Descargas');
+    } else {
+      throw new Error('Sistema operativo no soportado para obtener la carpeta de descargas');
+    }
+  
+    const folderPath = path.join(downloadsPath, 'archivos');
+    if (!fs.existsSync(folderPath)) {
+      fs.mkdirSync(folderPath, { recursive: true }); // Crear la carpeta si no existe
+    }
+  
+    const fileName = `reporte_ingredientes_${new Date().toISOString().replace(/[:.]/g, '-')}.xlsx`;
+    const filePath = path.join(folderPath, fileName);
+  
+    try {
+      // Guardar el archivo Excel
+      await workbook.xlsx.writeFile(filePath);
+  
+      return res.json({
+        message: 'Archivo generado correctamente',
+        filePath: `/Reportes/${fileName}`,
+      });
+    } catch (error) {
+      console.error('Error al guardar el archivo:', error);
+      throw new Error('No se pudo generar el archivo Excel');
+    }
   }
-}
-
 @Post('/validate-menus')
 async validateMenus(@Body() menusDTO: MenuDTO[]): Promise<{ valid: boolean; errors: { index: number; error: string }[] }> {
     const errors = await this.menuService.validateBatch(menusDTO);
