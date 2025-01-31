@@ -43,58 +43,62 @@ export class ProyeccionService {
     // Fetch the specific projection
     const projection = await this.model.findById(proyeccionId).populate('lista.platoid');
     if (!projection) {
-      throw new Error('Proyección no encontrada');
+        throw new Error('Proyección no encontrada');
     }
 
     const ingredientMap = new Map<string, { nombre: string; cantidad: number; unidadmedida: string }>();
-    let startDate: Date = null;
-    let endDate: Date = null;
 
-    for (const item of projection.lista) {
-      const { fecha, platoid, cantidad } = item;
+    // Ordenar la lista por fecha (de menor a mayor)
+    const sortedList = projection.lista.sort((a, b) => {
+        const dateA = new Date(a.fecha.split('-').reverse().join('-')); // Convertir "DD-MM-YYYY" a "YYYY-MM-DD"
+        const dateB = new Date(b.fecha.split('-').reverse().join('-'));
+        return dateA.getTime() - dateB.getTime();
+    });
 
-      // Parse start and end dates
-      const itemDate = new Date(fecha);
-      if (!startDate || itemDate < startDate) startDate = itemDate;
-      if (!endDate || itemDate > endDate) endDate = itemDate;
+    // Obtener la primera y última fecha
+    const startDate = new Date(sortedList[0].fecha.split('-').reverse().join('-'));
+    const endDate = new Date(sortedList[sortedList.length - 1].fecha.split('-').reverse().join('-'));
 
-      // Fetch ingredients for the current dish
-      const ingredients = await this.ingredientexplatoModel
-        .find({ id_plato: platoid })
-        .populate('id_ingrediente');
+    for (const item of sortedList) {
+        const { platoid, cantidad } = item;
 
-      for (const ingredientEntry of ingredients) {
-        const { id_ingrediente, peso_bruto } = ingredientEntry;
-        const ingrediente = id_ingrediente as IIngrediente;
+        // Fetch ingredients for the current dish
+        const ingredients = await this.ingredientexplatoModel
+            .find({ id_plato: platoid })
+            .populate('id_ingrediente');
 
-        if (!ingrediente || !peso_bruto) continue;
+        for (const ingredientEntry of ingredients) {
+            const { id_ingrediente, peso_bruto } = ingredientEntry;
+            const ingrediente = id_ingrediente as IIngrediente;
+            if (!ingrediente || !peso_bruto) continue;
 
-        const totalCantidad = parseInt(cantidad, 10) * peso_bruto;
-
-        if (ingredientMap.has(ingrediente.nombreIngrediente)) {
-          ingredientMap.get(ingrediente.nombreIngrediente).cantidad += totalCantidad;
-        } else {
-          ingredientMap.set(ingrediente.nombreIngrediente, {
-            nombre: ingrediente.nombreIngrediente,
-            cantidad: totalCantidad,
-            unidadmedida: ingrediente.unidadmedida,
-          });
+            const totalCantidad = parseInt(cantidad) * peso_bruto;
+            if (ingredientMap.has(ingrediente.nombreIngrediente)) {
+                ingredientMap.get(ingrediente.nombreIngrediente).cantidad += totalCantidad;
+            } else {
+                ingredientMap.set(ingrediente.nombreIngrediente, {
+                    nombre: ingrediente.nombreIngrediente,
+                    cantidad: totalCantidad,
+                    unidadmedida: ingrediente.unidadmedida,
+                });
+            }
         }
-      }
     }
 
     // Build the report
     const report = Array.from(ingredientMap.values()).map((ingredient) => ({
-      nombreIngrediente: ingredient.nombre,
-      cantidadTotal: ingredient.cantidad,
-      unidadMedida: ingredient.unidadmedida,
+        nombreIngrediente: ingredient.nombre,
+        cantidadTotal: ingredient.cantidad,
+        unidadMedida: ingredient.unidadmedida,
     }));
-      console.log(startDate, endDate, report)
+
+    console.log(startDate, endDate, report);
+
     return {
-      fechaInicio: startDate,
-      fechaFin: endDate,
-      ingredientes: report,
+        fechaInicio: startDate,
+        fechaFin: endDate,
+        ingredientes: report,
     };
-  }
+}
 }
 
