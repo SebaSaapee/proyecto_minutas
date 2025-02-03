@@ -44,6 +44,15 @@ export class EstructuraController {
     return this.estructuraService.update(id, estructuraDTO);
   }
 
+  @Put('semana/:semana')
+  @ApiOperation({ summary: 'Actualizar estructuras por semana' })
+  async updateBySemana(
+    @Param('semana') semana: string,
+    @Body() estructurasDTO: EstructuraDTO[],
+  ): Promise<void> {
+    return this.estructuraService.updateBySemana(semana, estructurasDTO);
+  }
+  
   @Delete(':id')
   @ApiOperation({ summary: 'Eliminar estructura' })
   delete(@Param('id') id: string) {

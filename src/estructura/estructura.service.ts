@@ -42,6 +42,20 @@ export class EstructuraService {
     return updatedEstructura;
   }
 
+  // Actualizar múltiples registros por semana
+  async updateBySemana(semana: string, estructurasDTO: EstructuraDTO[]): Promise<void> {
+    // Primero, eliminamos todos los registros existentes para esa semana
+    await this.model.deleteMany({ semana }).exec();
+
+    // Luego, creamos nuevos registros con los datos proporcionados
+    const newEstructuras = estructurasDTO.map(estructura => ({
+      ...estructura,
+      semana,
+    }));
+
+    await this.model.insertMany(newEstructuras);
+  }
+
   // Eliminar un registro por ID
   async delete(id: string): Promise<void> {
     const result = await this.model.findByIdAndDelete(id).exec();
