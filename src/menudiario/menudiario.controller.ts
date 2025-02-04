@@ -127,7 +127,6 @@ async getPlatosDisponibles(
 
   // Obtener la lista de platos disponibles según la lógica actual
   const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
-
   // Si se solicita filtrado extra...
   if (filtrar && filtrar.toLowerCase() === 'true') {
     // Se requieren los parámetros semana y día para poder buscar la estructura
@@ -163,11 +162,11 @@ async getPlatosDisponibles(
       desde la estructura, la categoría correspondiente.
     */
     const platosFiltrados = platos
-      .filter(plato =>
+    .filter(plato =>
         allowedStructures.some(
           estructura =>
-            estructura.familia === plato.familia &&
-            estructura.corteqlo === plato.corteqlo,
+            (estructura.familia && estructura.familia === plato.familia)  ||
+            (estructura.corteqlo && estructura.corteqlo === plato.corteqlo),
         ),
       )
       .map(plato => {
@@ -175,13 +174,9 @@ async getPlatosDisponibles(
         const estructura = allowedStructures.find(
           s => s.familia === plato.familia && s.corteqlo === plato.corteqlo,
         );
-        return {
-          familia: plato.familia,
-          corteqlo: plato.corteqlo,
-          categoria: estructura ? estructura.categoria : null,
-        };
+        return plato;
       });
-
+    console.log("FILTRADOS",platosFiltrados)
     return platosFiltrados;
   }
 
