@@ -4,7 +4,7 @@ export interface IPlato extends Document {
   categoria: string;
   descontinuado: boolean;
   familia: string;
-  tipo_corte: string;
+  corteqlo: string;
   temporada: string;
   createdAt?: Date;
   updatedAt?: Date;

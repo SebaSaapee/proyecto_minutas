@@ -107,18 +107,52 @@ export class MenuDiarioController {
   async aprobarMenu(@Param('id') id: string, @Body() body: { aprobado: boolean }) {
     return this.menuService.aprobarMenu(id, body.aprobado);
   }
-  @Get('Verificar/platos-disponibles')
-  async getPlatosDisponibles(@Query('fecha') fecha: string): Promise<IPlato[]> {
+
+  
+  @Get('Verificar/platos-disponibles/filtro')
+  async getPlatosDisponiblesWithFilter(
+    @Query('fecha') fecha: string,
+    @Query('filtrar') filtrar: string, // 'true' o 'false'
+    @Query('familia') familia?: string,
+    @Query('corteqlo') corteqlo?: string,
+  ): Promise<IPlato[]> {
     if (!fecha) {
       throw new BadRequestException('Debe proporcionar una fecha válida.');
     }
-
     const parsedFecha = new Date(fecha);
     if (isNaN(parsedFecha.getTime())) {
       throw new BadRequestException('Formato de fecha no válido.');
     }
 
-    return await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
+    // Obtener todos los platos disponibles según la lógica existente
+    const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
+
+    // Si se especifica que se debe filtrar (filtrar === 'true')
+    if (filtrar && filtrar.toLowerCase() === 'true') {
+      // Verificar que al menos uno de los parámetros de filtrado se haya enviado
+      if (!familia && !corteqlo) {
+        throw new BadRequestException(
+          'Debe proporcionar al menos uno de los parámetros: "familia" o "corteqlo" para filtrar.',
+        );
+      }
+
+      // Filtrar de acuerdo a los parámetros proporcionados
+      const platosFiltrados = platos.filter((plato) => {
+        let cumpleFiltro = true;
+        if (familia) {
+          cumpleFiltro = cumpleFiltro && plato.familia === familia;
+        }
+        if (corteqlo) {
+          cumpleFiltro = cumpleFiltro && plato.corteqlo === corteqlo;
+        }
+        return cumpleFiltro;
+      });
+
+      return platosFiltrados;
+    }
+
+    // Si no se activa el filtrado, se retorna la lista completa sin modificaciones
+    return platos;
   }
 
 
