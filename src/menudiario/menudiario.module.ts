@@ -9,6 +9,7 @@ import { MenuDiarioController } from './menudiario.controller';
 import { SucursalModule } from 'src/sucursal/sucursal.module';
 import { IngredientexplatoModule } from 'src/Ingredientexplato/ingredientexplato.module';
 import { IngredientexplatoService } from 'src/Ingredientexplato/ingredientexplato.service';
+import { EstructuraModule } from 'src/estructura/estructura.module';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { IngredientexplatoService } from 'src/Ingredientexplato/ingredientexplat
         useFactory: () => MenuDiarioSchema.plugin(require('mongoose-autopopulate')),
       },
     ]),
-    PlatoModule,SucursalModule,IngredientexplatoModule,
+    PlatoModule,SucursalModule,IngredientexplatoModule,EstructuraModule
   ],
   controllers: [MenuDiarioController],
   providers: [MenuDiarioService,IngredientexplatoService],
