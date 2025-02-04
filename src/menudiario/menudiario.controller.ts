@@ -161,14 +161,20 @@ async getPlatosDisponibles(
       Luego, mapeamos cada plato filtrado para retornar un objeto con la familia, corteqlo y,
       desde la estructura, la categoría correspondiente.
     */
-    const platosFiltrados = platos
-    .filter(plato =>
-        allowedStructures.some(
+      const platosFiltrados = platos
+      .filter(plato => {
+        // Verificar si la categoría del plato es "PLATO DE FONDO" o "GUARNICIÓN"
+        if (plato.categoria !== "PLATO DE FONDO" && plato.categoria !== "GUARNICIÓN") {
+          return plato;
+        }
+    
+        // Luego, verificar si el plato cumple con alguna de las estructuras permitidas
+        return allowedStructures.some(
           estructura =>
-            (estructura.familia && estructura.familia === plato.familia)  ||
+            (estructura.familia && estructura.familia === plato.familia) ||
             (estructura.corteqlo && estructura.corteqlo === plato.corteqlo),
-        ),
-      )
+        );
+      })
       .map(plato => {
         // Buscar en allowedStructures la estructura que corresponda al plato
         const estructura = allowedStructures.find(
@@ -176,7 +182,8 @@ async getPlatosDisponibles(
         );
         return plato;
       });
-    console.log("FILTRADOS",platosFiltrados)
+    
+    console.log("FILTRADOS", platosFiltrados);
     return platosFiltrados;
   }
 
