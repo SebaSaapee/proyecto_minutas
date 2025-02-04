@@ -63,4 +63,13 @@ export class EstructuraService {
       throw new NotFoundException(`Estructura with ID "${id}" not found`);
     }
   }
+
+   // Nueva función para obtener estructuras por semana y día
+   async getEstructuraBySemanaAndDia(semana: string, dia: string): Promise<IEstructura[]> {
+    const estructuras = await this.model.find({ semana, dia }).exec();
+    if (!estructuras || estructuras.length === 0) {
+      throw new NotFoundException(`No se encontraron estructuras para la semana "${semana}" y día "${dia}"`);
+    }
+    return estructuras;
+  }
 }

@@ -58,4 +58,14 @@ export class EstructuraController {
   delete(@Param('id') id: string) {
     return this.estructuraService.delete(id);
   }
+  // Nuevo endpoint para obtener estructuras por semana y día
+  @Get('semana/:semana/dia/:dia')
+  @ApiOperation({ summary: 'Obtener estructuras por semana y día' })
+  getBySemanaAndDia(
+    @Param('semana') semana: string,
+    @Param('dia') dia: string,
+  ) {
+    return this.estructuraService.getEstructuraBySemanaAndDia(semana, dia);
+  }
+  
 }

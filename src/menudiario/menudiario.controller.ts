@@ -26,6 +26,7 @@ import { Response } from 'express';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
+import { EstructuraService } from 'src/estructura/estructura.service';
 
 @ApiTags('Menu Diario')
 @ApiBearerAuth()
@@ -35,6 +36,7 @@ export class MenuDiarioController {
   constructor(
     private readonly menuService: MenuDiarioService,
     private readonly platoService: PlatoService,
+    private readonly estructuraService: EstructuraService
   ) {}
 
   @Post()
@@ -107,15 +109,14 @@ export class MenuDiarioController {
   async aprobarMenu(@Param('id') id: string, @Body() body: { aprobado: boolean }) {
     return this.menuService.aprobarMenu(id, body.aprobado);
   }
-
-
-  @Get('Verificar/platos-disponibles/filtro')
-  async getPlatosDisponiblesWithFilter(
+  @Get('Verificar/platos-disponibles')
+  async getPlatosDisponibles(
     @Query('fecha') fecha: string,
-    @Query('filtrar') filtrar: string, // 'true' o 'false'
-    @Query('familia') familia?: string,
-    @Query('corteqlo') corteqlo?: string,
+    @Query('filtrar') filtrar?: string, // 'true' o 'false'
+    @Query('semana') semana?: string,
+    @Query('dia') dia?: string,
   ): Promise<IPlato[]> {
+    // Validación de la fecha
     if (!fecha) {
       throw new BadRequestException('Debe proporcionar una fecha válida.');
     }
@@ -124,34 +125,58 @@ export class MenuDiarioController {
       throw new BadRequestException('Formato de fecha no válido.');
     }
 
-    // Obtener todos los platos disponibles según la lógica existente
+    // Obtener la lista de platos disponibles según la lógica actual
     const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
 
-    // Si se especifica que se debe filtrar (filtrar === 'true')
+    // Si se solicita filtrado extra...
     if (filtrar && filtrar.toLowerCase() === 'true') {
-      // Verificar que al menos uno de los parámetros de filtrado se haya enviado
-      if (!familia && !corteqlo) {
+      // Se requieren los parámetros semana y día para poder buscar la estructura
+      if (!semana || !dia) {
         throw new BadRequestException(
-          'Debe proporcionar al menos uno de los parámetros: "familia" o "Tipo de Corte" para filtrar.',
+          'Debe proporcionar los parámetros "semana" y "dia" para filtrar por estructura.',
         );
       }
 
-      // Filtrar de acuerdo a los parámetros proporcionados
-      const platosFiltrados = platos.filter((plato) => {
-        let cumpleFiltro = true;
-        if (familia) {
-          cumpleFiltro = cumpleFiltro && plato.familia === familia;
-        }
-        if (corteqlo) {
-          cumpleFiltro = cumpleFiltro && plato.corteqlo === corteqlo;
-        }
-        return cumpleFiltro;
+      // Consultamos la estructura para la semana y día indicados
+      const estructuras = await this.estructuraService.getEstructuraBySemanaAndDia(semana, dia);
+
+      if (!estructuras || estructuras.length === 0) {
+        throw new BadRequestException(
+          'No se encontró estructura para la semana y día proporcionados.',
+        );
+      }
+
+      // Se asume que en la estructura se definen los valores permitidos para familia y tipo de corte.
+      // Se obtienen los valores permitidos (sin duplicados) de los documentos de estructura.
+      const allowedFamilies = [
+        ...new Set(estructuras.filter(e => e.familia).map(e => e.familia)),
+      ];
+      const allowedCortes = [
+        ...new Set(estructuras.filter(e => e.corteqlo).map(e => e.corteqlo)),
+      ];
+
+      /*  
+        La idea es que si la estructura define:
+          - Familias permitidas (allowedFamilies) y/o
+          - Tipos de corte permitidos (allowedCortes)
+        entonces se filtrará la lista de platos para conservar aquellos que cumplan:
+          - Si hay familias definidas, el plato debe tener una familia incluida en allowedFamilies.
+          - Si hay tipos de corte definidos, el plato debe tener un corte (corteqlo) incluido en allowedCortes.
+        
+        Es decir, si la estructura tiene ambos criterios, se exige que se cumplan los dos.
+      */
+      const platosFiltrados = platos.filter(plato => {
+        const cumpleFamilia =
+          allowedFamilies.length > 0 ? allowedFamilies.includes(plato.familia) : true;
+        const cumpleCorte =
+          allowedCortes.length > 0 ? allowedCortes.includes(plato.corteqlo) : true;
+        return cumpleFamilia && cumpleCorte;
       });
 
       return platosFiltrados;
     }
 
-    // Si no se activa el filtrado, se retorna la lista completa sin modificaciones
+    // Si filtrar no es 'true', se retorna la lista completa sin modificaciones
     return platos;
   }
 
