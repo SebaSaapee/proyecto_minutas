@@ -218,7 +218,7 @@ async aprobarMenu(id: string, aprobado: boolean) {
     fechaInicio4Semanas.setDate(fechaInicio4Semanas.getDate() - 28);
 
     // Obtener todos los platos
-    const platos = await this.platoModel.find();
+    const platos = (await this.platoModel.find()).filter(p => p.descontinuado === false);
 
     // Filtrar platos por categoría
     const platosFondo = platos.filter(plato => plato.categoria === 'PLATO DE FONDO');
