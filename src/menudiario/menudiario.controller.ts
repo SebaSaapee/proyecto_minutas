@@ -110,75 +110,84 @@ export class MenuDiarioController {
     return this.menuService.aprobarMenu(id, body.aprobado);
   }
   @Get('Verificar/platos-disponibles')
-  async getPlatosDisponibles(
-    @Query('fecha') fecha: string,
-    @Query('filtrar') filtrar?: string, // 'true' o 'false'
-    @Query('semana') semana?: string,
-    @Query('dia') dia?: string,
-  ): Promise<IPlato[]> {
-    // Validación de la fecha
-    if (!fecha) {
-      throw new BadRequestException('Debe proporcionar una fecha válida.');
+async getPlatosDisponibles(
+  @Query('fecha') fecha: string,
+  @Query('filtrar') filtrar?: string, // 'true' o 'false'
+  @Query('semana') semana?: string,
+  @Query('dia') dia?: string,
+): Promise<any> {
+  // Validación de la fecha
+  if (!fecha) {
+    throw new BadRequestException('Debe proporcionar una fecha válida.');
+  }
+  const parsedFecha = new Date(fecha);
+  if (isNaN(parsedFecha.getTime())) {
+    throw new BadRequestException('Formato de fecha no válido.');
+  }
+
+  // Obtener la lista de platos disponibles según la lógica actual
+  const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
+
+  // Si se solicita filtrado extra...
+  if (filtrar && filtrar.toLowerCase() === 'true') {
+    // Se requieren los parámetros semana y día para poder buscar la estructura
+    if (!semana || !dia) {
+      throw new BadRequestException(
+        'Debe proporcionar los parámetros "semana" y "dia" para filtrar por estructura.',
+      );
     }
-    const parsedFecha = new Date(fecha);
-    if (isNaN(parsedFecha.getTime())) {
-      throw new BadRequestException('Formato de fecha no válido.');
+
+    // Consultamos la estructura para la semana y día indicados
+    const estructuras = await this.estructuraService.getEstructuraBySemanaAndDia(semana, dia);
+
+    if (!estructuras || estructuras.length === 0) {
+      throw new BadRequestException(
+        'No se encontró estructura para la semana y día proporcionados.',
+      );
     }
 
-    // Obtener la lista de platos disponibles según la lógica actual
-    const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
+    // Construir un array único de objetos con familia, corteqlo y categoría de la estructura
+    const allowedStructures = Array.from(
+      new Map(
+        estructuras.map(e => [
+          `${e.familia}-${e.corteqlo}-${e.categoria}`, // clave única
+          { familia: e.familia, corteqlo: e.corteqlo, categoria: e.categoria },
+        ]),
+      ).values(),
+    );
 
-    // Si se solicita filtrado extra...
-    if (filtrar && filtrar.toLowerCase() === 'true') {
-      // Se requieren los parámetros semana y día para poder buscar la estructura
-      if (!semana || !dia) {
-        throw new BadRequestException(
-          'Debe proporcionar los parámetros "semana" y "dia" para filtrar por estructura.',
+    /*
+      Filtramos los platos para conservar aquellos que coincidan en familia y corteqlo
+      con alguno de los registros permitidos en allowedStructures.
+      Luego, mapeamos cada plato filtrado para retornar un objeto con la familia, corteqlo y,
+      desde la estructura, la categoría correspondiente.
+    */
+    const platosFiltrados = platos
+      .filter(plato =>
+        allowedStructures.some(
+          estructura =>
+            estructura.familia === plato.familia &&
+            estructura.corteqlo === plato.corteqlo,
+        ),
+      )
+      .map(plato => {
+        // Buscar en allowedStructures la estructura que corresponda al plato
+        const estructura = allowedStructures.find(
+          s => s.familia === plato.familia && s.corteqlo === plato.corteqlo,
         );
-      }
-
-      // Consultamos la estructura para la semana y día indicados
-      const estructuras = await this.estructuraService.getEstructuraBySemanaAndDia(semana, dia);
-
-      if (!estructuras || estructuras.length === 0) {
-        throw new BadRequestException(
-          'No se encontró estructura para la semana y día proporcionados.',
-        );
-      }
-
-      // Se asume que en la estructura se definen los valores permitidos para familia y tipo de corte.
-      // Se obtienen los valores permitidos (sin duplicados) de los documentos de estructura.
-      const allowedFamilies = [
-        ...new Set(estructuras.filter(e => e.familia).map(e => e.familia)),
-      ];
-      const allowedCortes = [
-        ...new Set(estructuras.filter(e => e.corteqlo).map(e => e.corteqlo)),
-      ];
-
-      /*  
-        La idea es que si la estructura define:
-          - Familias permitidas (allowedFamilies) y/o
-          - Tipos de corte permitidos (allowedCortes)
-        entonces se filtrará la lista de platos para conservar aquellos que cumplan:
-          - Si hay familias definidas, el plato debe tener una familia incluida en allowedFamilies.
-          - Si hay tipos de corte definidos, el plato debe tener un corte (corteqlo) incluido en allowedCortes.
-        
-        Es decir, si la estructura tiene ambos criterios, se exige que se cumplan los dos.
-      */
-      const platosFiltrados = platos.filter(plato => {
-        const cumpleFamilia =
-          allowedFamilies.length > 0 ? allowedFamilies.includes(plato.familia) : true;
-        const cumpleCorte =
-          allowedCortes.length > 0 ? allowedCortes.includes(plato.corteqlo) : true;
-        return cumpleFamilia && cumpleCorte;
+        return {
+          familia: plato.familia,
+          corteqlo: plato.corteqlo,
+          categoria: estructura ? estructura.categoria : null,
+        };
       });
 
-      return platosFiltrados;
-    }
-
-    // Si filtrar no es 'true', se retorna la lista completa sin modificaciones
-    return platos;
+    return platosFiltrados;
   }
+
+  // Si filtrar no es 'true', se retorna la lista completa sin modificaciones
+  return platos;
+}
 
 
   @Get('reporte/obtener-platos')
