@@ -108,7 +108,7 @@ export class MenuDiarioController {
     return this.menuService.aprobarMenu(id, body.aprobado);
   }
 
-  
+
   @Get('Verificar/platos-disponibles/filtro')
   async getPlatosDisponiblesWithFilter(
     @Query('fecha') fecha: string,
@@ -132,7 +132,7 @@ export class MenuDiarioController {
       // Verificar que al menos uno de los parámetros de filtrado se haya enviado
       if (!familia && !corteqlo) {
         throw new BadRequestException(
-          'Debe proporcionar al menos uno de los parámetros: "familia" o "corteqlo" para filtrar.',
+          'Debe proporcionar al menos uno de los parámetros: "familia" o "Tipo de Corte" para filtrar.',
         );
       }
 
