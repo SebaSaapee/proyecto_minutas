@@ -206,133 +206,82 @@ async aprobarMenu(id: string, aprobado: boolean) {
 }
 
 
-  async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
-    const fechaInicio = new Date(fecha); // Clonamos la fecha para no modificar la original
-
-    // Obtenemos la fecha de inicio para el rango de 12 semanas (platos de fondo)
-    const fechaInicio12Semanas = new Date(fechaInicio);
-    fechaInicio12Semanas.setDate(fechaInicio12Semanas.getDate() - 84);
-
-    // Obtenemos la fecha de inicio para el rango de 4 semanas (platos restrictivos y ensaladas)
-    const fechaInicio4Semanas = new Date(fechaInicio);
-    fechaInicio4Semanas.setDate(fechaInicio4Semanas.getDate() - 28);
-
-    // Obtener todos los platos
-    const platos = (await this.platoModel.find()).filter(p => p.descontinuado === false);
-
-    // Filtrar platos por categoría
-    const platosFondo = platos.filter(plato => plato.categoria === 'PLATO DE FONDO');
-    const platosRestrictivos = platos.filter(plato =>
-      ['VEGANA/VEGETARIANA', 'GUARNICIÓN', 'HIPOCALORICO'].includes(plato.categoria),
-    );
-    const ensaladas = platos.filter(plato => plato.categoria === 'ENSALADA');
-    const sopas = platos.filter(plato => plato.categoria === 'SOPA' || plato.categoria === 'CREMAS');
-    const postres = platos.filter(plato => plato.categoria === 'POSTRES');
-
-    // Verificar si existen platos de fondo repetidos en las últimas 12 semanas
-    const platosFondoRepetidos = await this.model.find({
-      fecha: { $gte: fechaInicio12Semanas, $lt: fechaInicio },
-      'listaplatos.platoId': { $in: platosFondo.map(plato => plato._id) },
-    });
-
-    // Verificar si existen platos restrictivos repetidos en las últimas 4 semanas
-    const platosRestrictivosRepetidos = await this.model.find({
-      fecha: { $gte: fechaInicio4Semanas, $lt: fechaInicio },
-      'listaplatos.platoId': { $in: platosRestrictivos.map(plato => plato._id) },
-    });
-
-    // Verificar si existen combinaciones de ensaladas repetidas en las últimas 4 semanas
-    const combinacionesEnsaladasRepetidas = await this.model.find({
-      fecha: { $gte: fechaInicio4Semanas, $lt: fechaInicio },
-      'listaplatos.platoId': { $all: ensaladas.map(plato => plato._id) },
-    });
-
-    // Filtrar platos que no están disponibles
-    const platosFondoDisponibles = platosFondo.filter(plato =>
-      !platosFondoRepetidos.some(menu =>
-        menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
-      )
-    );
-    
-    const platosRestrictivosDisponibles = platosRestrictivos.filter(plato =>
-      !platosRestrictivosRepetidos.some(menu =>
-        menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
-      ),
-    );
-
-    const ensaladasDisponibles = ensaladas.filter(plato =>
-      !combinacionesEnsaladasRepetidas.some(menu =>
-        menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
-      ),
-    );
-
-    // Devolver los platos que están disponibles, incluyendo sopas y postres
-    return [
-      ...platosFondoDisponibles,
-      ...platosRestrictivosDisponibles,
-      ...ensaladasDisponibles,
-      ...sopas,
-      ...postres,
-    ];
-  }
 
 
-  async obtenerPlatosPorFechaSucursal({
-    fechaInicio,
-    fechaFin,
-    
-  }: {
-    fechaInicio: Date | null;
-    fechaFin: Date | null;
-    
-  }) {
-    const filtro: any = {};
+async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
+  // Crear las fechas de referencia para las últimas 12 y 4 semanas
+  const fechaInicio12Semanas = new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()));
+  fechaInicio12Semanas.setUTCDate(fechaInicio12Semanas.getUTCDate() - 84);
 
-    // Filtrar por   sucursal  
-    if (fechaInicio && fechaFin) {
-      // Ajustar fechaInicio y fechaFin a UTC (00:00:00 y 23:59:59.999)
-      fechaInicio.setHours(23, 0, 0, 0);  
-      fechaFin.setHours(23, 59, 59, 999);
-    
-      // Convertir las fechas a UTC antes de la consulta
-      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
-      const fechaFinUTC = new Date(Date.UTC(fechaFin.getUTCFullYear(), fechaFin.getUTCMonth(), fechaFin.getUTCDate(), 23, 59, 59, 999));
-    
-      filtro.fecha = { $gte: fechaInicioUTC, $lte: fechaFinUTC };
-    } else if (fechaInicio) {
-      // Ajustar solo fechaInicio a UTC
-      fechaInicio.setHours(23, 0, 0, 0);
-      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
-      filtro.fecha = { $gte: fechaInicioUTC };
-    } else if (fechaFin) {
-      // Ajustar solo fechaFin a UTC
-      fechaFin.setHours(23, 59, 59, 999);
-      const fechaFinUTC = new Date(Date.UTC(fechaFin.getUTCFullYear(), fechaFin.getUTCMonth(), fechaFin.getUTCDate(), 23, 59, 59, 999));
-      filtro.fecha = { $lte: fechaFinUTC };
-    }
-  
-    // Realizar la consulta con el filtro y populando los platos
-    const menus = await this.model
-      .find(filtro)
-      .populate({
-        path: 'listaplatos',
-        populate: { 
-          path: 'platoId',
-          model: PLATO.name 
-        }
-      })
-      .exec();
-  
-    // Devolver los datos de los platos
-    return menus.map(menu => ({
-      fecha: menu.fecha,
-      platos: menu.listaplatos.map(item => ({
-        id: item.platoId._id,
-        nombre: item.platoId.nombre,
-        descripcion: item.platoId.descripcion,
-      })),
-    }));
-  }
+  const fechaInicio4Semanas = new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()));
+  fechaInicio4Semanas.setUTCDate(fechaInicio4Semanas.getUTCDate() - 28);
+
+  // Obtener todos los platos no descontinuados
+  const platos = await this.platoModel.find({ descontinuado: false });
+
+  // Clasificar los platos según la categoría
+  const platosFondo = platos.filter(plato => plato.categoria === 'PLATO DE FONDO');
+  const platosRestrictivos = platos.filter(plato =>
+    ['VEGANA/VEGETARIANA', 'GUARNICIÓN', 'HIPOCALORICO'].includes(plato.categoria),
+  );
+  const ensaladas = platos.filter(plato => plato.categoria === 'ENSALADA');
+  const sopas = platos.filter(plato => ['SOPA', 'CREMAS'].includes(plato.categoria));
+  const postres = platos.filter(plato => plato.categoria === 'POSTRES');
+
+  // Obtener los IDs de los platos para las consultas
+  const idsPlatosFondo = platosFondo.map(plato => plato._id);
+  const idsPlatosRestrictivos = platosRestrictivos.map(plato => plato._id);
+  const idsEnsaladas = ensaladas.map(plato => plato._id);
+
+  // Buscar platos repetidos según las fechas y categorías
+  const [
+    platosFondoRepetidos,
+    platosRestrictivosRepetidos,
+    combinacionesEnsaladasRepetidas
+  ] = await Promise.all([
+    this.model.find({
+      fecha: { $gte: fechaInicio12Semanas, $lt: fecha },
+      'listaplatos.platoId': { $in: idsPlatosFondo },
+    }),
+    this.model.find({
+      fecha: { $gte: fechaInicio4Semanas, $lt: fecha },
+      'listaplatos.platoId': { $in: idsPlatosRestrictivos },
+    }),
+    this.model.find({
+      fecha: { $gte: fechaInicio4Semanas, $lt: fecha },
+      'listaplatos.platoId': { $all: idsEnsaladas },
+    }),
+  ]);
+
+  // Filtrar platos disponibles eliminando los repetidos
+  const platosFondoDisponibles = platosFondo.filter(plato =>
+    !platosFondoRepetidos.some(menu =>
+      menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
+    ),
+  );
+
+  const platosRestrictivosDisponibles = platosRestrictivos.filter(plato =>
+    !platosRestrictivosRepetidos.some(menu =>
+      menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
+    ),
+  );
+
+  const ensaladasDisponibles = ensaladas.filter(plato =>
+    !combinacionesEnsaladasRepetidas.some(menu =>
+      menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
+    ),
+  );
+
+  // Combinar y devolver los platos disponibles, incluyendo sopas y postres
+  return [
+    ...platosFondoDisponibles,
+    ...platosRestrictivosDisponibles,
+    ...ensaladasDisponibles,
+    ...sopas,
+    ...postres,
+  ];
+}
+
 
   async calcularIngredientesPorPeriodo(filtro: {
     fechaInicio: Date;
