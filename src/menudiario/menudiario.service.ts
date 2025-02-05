@@ -206,8 +206,6 @@ async aprobarMenu(id: string, aprobado: boolean) {
 }
 
 
-
-
 async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
   // Crear las fechas de referencia para las últimas 12 y 4 semanas
   const fechaInicio12Semanas = new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()));
@@ -282,6 +280,64 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
   ];
 }
 
+
+
+  async obtenerPlatosPorFechaSucursal({
+    fechaInicio,
+    fechaFin,
+    
+  }: {
+    fechaInicio: Date | null;
+    fechaFin: Date | null;
+    
+  }) {
+    const filtro: any = {};
+
+    // Filtrar por   sucursal  
+    if (fechaInicio && fechaFin) {
+      // Ajustar fechaInicio y fechaFin a UTC (00:00:00 y 23:59:59.999)
+      fechaInicio.setHours(23, 0, 0, 0);  
+      fechaFin.setHours(23, 59, 59, 999);
+    
+      // Convertir las fechas a UTC antes de la consulta
+      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
+      const fechaFinUTC = new Date(Date.UTC(fechaFin.getUTCFullYear(), fechaFin.getUTCMonth(), fechaFin.getUTCDate(), 23, 59, 59, 999));
+    
+      filtro.fecha = { $gte: fechaInicioUTC, $lte: fechaFinUTC };
+    } else if (fechaInicio) {
+      // Ajustar solo fechaInicio a UTC
+      fechaInicio.setHours(23, 0, 0, 0);
+      const fechaInicioUTC = new Date(Date.UTC(fechaInicio.getUTCFullYear(), fechaInicio.getUTCMonth(), fechaInicio.getUTCDate(), 0, 0, 0, 0));
+      filtro.fecha = { $gte: fechaInicioUTC };
+    } else if (fechaFin) {
+      // Ajustar solo fechaFin a UTC
+      fechaFin.setHours(23, 59, 59, 999);
+      const fechaFinUTC = new Date(Date.UTC(fechaFin.getUTCFullYear(), fechaFin.getUTCMonth(), fechaFin.getUTCDate(), 23, 59, 59, 999));
+      filtro.fecha = { $lte: fechaFinUTC };
+    }
+  
+    // Realizar la consulta con el filtro y populando los platos
+    const menus = await this.model
+      .find(filtro)
+      .populate({
+        path: 'listaplatos',
+        populate: { 
+          path: 'platoId',
+          model: PLATO.name 
+        }
+      })
+      .exec();
+  
+    // Devolver los datos de los platos
+    return menus.map(menu => ({
+      fecha: menu.fecha,
+      platos: menu.listaplatos.map(item => ({
+        id: item.platoId._id,
+        nombre: item.platoId.nombre,
+        descripcion: item.platoId.descripcion,
+      })),
+    }));
+  }
 
   async calcularIngredientesPorPeriodo(filtro: {
     fechaInicio: Date;
