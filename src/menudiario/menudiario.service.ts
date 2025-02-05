@@ -21,7 +21,7 @@ export class MenuDiarioService {
 
   async create(menuDTO: MenuDTO): Promise<IMenudiario> {
     const last12Weeks = new Date(menuDTO.fecha);
-    last12Weeks.setDate(last12Weeks.getDate() - 84); // 12 semanas atrás
+    last12Weeks.setDate(last12Weeks.getDate() - 84); // 8semsemanas atrás
 
     const last4Weeks = new Date(menuDTO.fecha);
     last4Weeks.setDate(last4Weeks.getDate() - 28); // 4 semanas atrás
@@ -205,14 +205,17 @@ async aprobarMenu(id: string, aprobado: boolean) {
   return this.model.findByIdAndUpdate(id, { aprobado }, { new: true }).exec();
 }
 
-
 async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
   // Crear las fechas de referencia para las últimas 12 y 4 semanas
-  const fechaInicio12Semanas = new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()));
-  fechaInicio12Semanas.setUTCDate(fechaInicio12Semanas.getUTCDate() - 84);
+  const fechaInicio12Semanas = new Date(fecha);
+  fechaInicio12Semanas.setUTCDate(fechaInicio12Semanas.getUTCDate() - 46);
 
-  const fechaInicio4Semanas = new Date(Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()));
+  const fechaInicio4Semanas = new Date(fecha);
   fechaInicio4Semanas.setUTCDate(fechaInicio4Semanas.getUTCDate() - 28);
+
+  console.log('Fecha actual:', fecha);
+  console.log('Fecha inicio 12 semanas atrás:', fechaInicio12Semanas);
+  console.log('Fecha inicio 4 semanas atrás:', fechaInicio4Semanas);
 
   // Obtener todos los platos no descontinuados
   const platos = await this.platoModel.find({ descontinuado: false });
@@ -227,15 +230,15 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
   const postres = platos.filter(plato => plato.categoria === 'POSTRES');
 
   // Obtener los IDs de los platos para las consultas
-  const idsPlatosFondo = platosFondo.map(plato => plato._id);
-  const idsPlatosRestrictivos = platosRestrictivos.map(plato => plato._id);
-  const idsEnsaladas = ensaladas.map(plato => plato._id);
+  const idsPlatosFondo = platosFondo.map(plato => plato._id.toString());
+  const idsPlatosRestrictivos = platosRestrictivos.map(plato => plato._id.toString());
+  const idsEnsaladas = ensaladas.map(plato => plato._id.toString());
 
   // Buscar platos repetidos según las fechas y categorías
   const [
     platosFondoRepetidos,
     platosRestrictivosRepetidos,
-    combinacionesEnsaladasRepetidas
+    ensaladasRepetidas,
   ] = await Promise.all([
     this.model.find({
       fecha: { $gte: fechaInicio12Semanas, $lt: fecha },
@@ -247,37 +250,46 @@ async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
     }),
     this.model.find({
       fecha: { $gte: fechaInicio4Semanas, $lt: fecha },
-      'listaplatos.platoId': { $all: idsEnsaladas },
+      'listaplatos.platoId': { $in: idsEnsaladas },
     }),
   ]);
 
+  // Extraer IDs de los platos repetidos
+  const idsFondoRepetidos = new Set(
+    platosFondoRepetidos.flatMap(menu =>
+      menu.listaplatos.map(listaPlato => listaPlato.platoId.toString()),
+    ),
+  );
+  const idsRestrictivosRepetidos = new Set(
+    platosRestrictivosRepetidos.flatMap(menu =>
+      menu.listaplatos.map(listaPlato => listaPlato.platoId.toString()),
+    ),
+  );
+  const idsEnsaladasRepetidas = new Set(
+    ensaladasRepetidas.flatMap(menu =>
+      menu.listaplatos.map(listaPlato => listaPlato.platoId.toString()),
+    ),
+  );
+
   // Filtrar platos disponibles eliminando los repetidos
-  const platosFondoDisponibles = platosFondo.filter(plato =>
-    !platosFondoRepetidos.some(menu =>
-      menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
-    ),
+  const platosFondoDisponibles = platosFondo.filter(plato => !idsFondoRepetidos.has(plato._id.toString()));
+  const platosRestrictivosDisponibles = platosRestrictivos.filter(
+    plato => !idsRestrictivosRepetidos.has(plato._id.toString()),
   );
-
-  const platosRestrictivosDisponibles = platosRestrictivos.filter(plato =>
-    !platosRestrictivosRepetidos.some(menu =>
-      menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
-    ),
-  );
-
-  const ensaladasDisponibles = ensaladas.filter(plato =>
-    !combinacionesEnsaladasRepetidas.some(menu =>
-      menu.listaplatos.some(listaPlato => listaPlato.platoId.toString() === plato._id.toString()),
-    ),
-  );
+  const ensaladasDisponibles = ensaladas.filter(plato => !idsEnsaladasRepetidas.has(plato._id.toString()));
 
   // Combinar y devolver los platos disponibles, incluyendo sopas y postres
-  return [
+  const platosDisponibles = [
     ...platosFondoDisponibles,
     ...platosRestrictivosDisponibles,
     ...ensaladasDisponibles,
     ...sopas,
     ...postres,
   ];
+
+  console.log('Platos disponibles:', platosDisponibles.map(plato => plato.nombre));
+
+  return platosDisponibles;
 }
 
 

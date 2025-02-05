@@ -182,8 +182,7 @@ async getPlatosDisponibles(
         );
         return plato;
       });
-    
-    console.log("FILTRADOS", platosFiltrados);
+ 
     return platosFiltrados;
   }
 
@@ -219,8 +218,6 @@ async getPlatosDisponibles(
       platosConCantidad,
     });
   
-    console.log("controler");
-    console.log(fechaInicio);
   
     // Crear un nuevo libro de Excel
     const workbook = new ExcelJS.Workbook();
