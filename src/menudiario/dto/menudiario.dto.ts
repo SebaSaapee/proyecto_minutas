@@ -27,7 +27,7 @@ export class MenuDTO {
   @ApiProperty()
   @IsNotEmpty()
   @IsString()
-  readonly estado: string;
+  readonly id_sucursal: string; 
 
   @ApiProperty({ type: [PlatoFilaDTO], description: 'Lista de platos con sus filas' })
   @IsNotEmpty()

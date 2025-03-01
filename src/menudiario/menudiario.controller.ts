@@ -27,6 +27,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
 import { EstructuraService } from 'src/estructura/estructura.service';
+import mongoose, { ObjectId, Types } from 'mongoose';
 
 @ApiTags('Menu Diario')
 @ApiBearerAuth()
@@ -99,106 +100,109 @@ export class MenuDiarioController {
     return platos;
   }
 
- // Ruta para obtener los menús no aprobados
- @Get('verificar/no-aprobados')
- async getMenusNoAprobados(): Promise<IMenudiario[]> {
-   return this.menuService.getMenusNoAprobados();
- }
+  // Ruta para obtener los menús no aprobados
+  @Get('verificar/no-aprobados')
+  async getMenusNoAprobados(): Promise<IMenudiario[]> {
+    return this.menuService.getMenusNoAprobados();
+  }
 
- @Patch('Verificar/aprobado/:id')
+  @Patch('Verificar/aprobado/:id')
   async aprobarMenu(@Param('id') id: string, @Body() body: { aprobado: boolean }) {
     return this.menuService.aprobarMenu(id, body.aprobado);
   }
+
   @Get('Verificar/platos-disponibles')
-async getPlatosDisponibles(
-  @Query('fecha') fecha: string,
-  @Query('filtrar') filtrar?: string, // 'true' o 'false'
-  @Query('semana') semana?: string,
-  @Query('dia') dia?: string,
-): Promise<any> {
-  // Validación de la fecha
-  if (!fecha) {
-    throw new BadRequestException('Debe proporcionar una fecha válida.');
-  }
-  const parsedFecha = new Date(fecha);
-  if (isNaN(parsedFecha.getTime())) {
-    throw new BadRequestException('Formato de fecha no válido.');
-  }
-
-  // Obtener la lista de platos disponibles según la lógica actual
-  const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
-  // Si se solicita filtrado extra...
-  if (filtrar && filtrar.toLowerCase() === 'true') {
-    // Se requieren los parámetros semana y día para poder buscar la estructura
-    if (!semana || !dia) {
-      throw new BadRequestException(
-        'Debe proporcionar los parámetros "semana" y "dia" para filtrar por estructura.',
-      );
+  async getPlatosDisponibles(
+    @Query('fecha') fecha: string,
+    @Query('filtrar') filtrar?: string, // 'true' o 'false'
+    @Query('semana') semana?: string,
+    @Query('dia') dia?: string,
+  ): Promise<any> {
+    // Validación de la fecha
+    if (!fecha) {
+      throw new BadRequestException('Debe proporcionar una fecha válida.');
+    }
+    const parsedFecha = new Date(fecha);
+    if (isNaN(parsedFecha.getTime())) {
+      throw new BadRequestException('Formato de fecha no válido.');
     }
 
-    // Consultamos la estructura para la semana y día indicados
-    const estructuras = await this.estructuraService.getEstructuraBySemanaAndDia(semana, dia);
+    // Obtener la lista de platos disponibles según la lógica actual
+    const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
+    // Si se solicita filtrado extra...
+    if (filtrar && filtrar.toLowerCase() === 'true') {
+      // Se requieren los parámetros semana y día para poder buscar la estructura
+      if (!semana || !dia) {
+        throw new BadRequestException(
+          'Debe proporcionar los parámetros "semana" y "dia" para filtrar por estructura.',
+        );
+      }
 
-    if (!estructuras || estructuras.length === 0) {
-      throw new BadRequestException(
-        'No se encontró estructura para la semana y día proporcionados.',
+      // Consultamos la estructura para la semana y día indicados
+      const estructuras = await this.estructuraService.getEstructuraBySemanaAndDia(semana, dia);
+
+      if (!estructuras || estructuras.length === 0) {
+        throw new BadRequestException(
+          'No se encontró estructura para la semana y día proporcionados.',
+        );
+      }
+
+      // Construir un array único de objetos con familia, corteqlo y categoría de la estructura
+      const allowedStructures = Array.from(
+        new Map(
+          estructuras.map(e => [
+            `${e.familia}-${e.corteqlo}-${e.categoria}`, // clave única
+            { familia: e.familia, corteqlo: e.corteqlo, categoria: e.categoria },
+          ]),
+        ).values(),
       );
-    }
 
-    // Construir un array único de objetos con familia, corteqlo y categoría de la estructura
-    const allowedStructures = Array.from(
-      new Map(
-        estructuras.map(e => [
-          `${e.familia}-${e.corteqlo}-${e.categoria}`, // clave única
-          { familia: e.familia, corteqlo: e.corteqlo, categoria: e.categoria },
-        ]),
-      ).values(),
-    );
-
-    /*
-      Filtramos los platos para conservar aquellos que coincidan en familia y corteqlo
-      con alguno de los registros permitidos en allowedStructures.
-      Luego, mapeamos cada plato filtrado para retornar un objeto con la familia, corteqlo y,
-      desde la estructura, la categoría correspondiente.
-    */
-      const platosFiltrados = platos
-      .filter(plato => {
-        // Verificar si la categoría del plato es "PLATO DE FONDO" o "GUARNICIÓN"
-        if (plato.categoria !== "PLATO DE FONDO" && plato.categoria !== "GUARNICIÓN") {
+      /*
+        Filtramos los platos para conservar aquellos que coincidan en familia y corteqlo
+        con alguno de los registros permitidos en allowedStructures.
+        Luego, mapeamos cada plato filtrado para retornar un objeto con la familia, corteqlo y,
+        desde la estructura, la categoría correspondiente.
+      */
+        const platosFiltrados = platos
+        .filter(plato => {
+          // Verificar si la categoría del plato es "PLATO DE FONDO" o "GUARNICIÓN"
+          if (plato.categoria !== "PLATO DE FONDO" && plato.categoria !== "GUARNICIÓN") {
+            return plato;
+          }
+      
+          // Luego, verificar si el plato cumple con alguna de las estructuras permitidas
+          return allowedStructures.some(
+            estructura =>
+              (estructura.familia && estructura.familia === plato.familia) ||
+              (estructura.corteqlo && estructura.corteqlo === plato.corteqlo),
+          );
+        })
+        .map(plato => {
+          // Buscar en allowedStructures la estructura que corresponda al plato
+          const estructura = allowedStructures.find(
+            s => s.familia === plato.familia && s.corteqlo === plato.corteqlo,
+          );
           return plato;
-        }
-    
-        // Luego, verificar si el plato cumple con alguna de las estructuras permitidas
-        return allowedStructures.some(
-          estructura =>
-            (estructura.familia && estructura.familia === plato.familia) ||
-            (estructura.corteqlo && estructura.corteqlo === plato.corteqlo),
-        );
-      })
-      .map(plato => {
-        // Buscar en allowedStructures la estructura que corresponda al plato
-        const estructura = allowedStructures.find(
-          s => s.familia === plato.familia && s.corteqlo === plato.corteqlo,
-        );
-        return plato;
-      });
- 
-    return platosFiltrados;
-  }
+        });
+  
+      return platosFiltrados;
+    }
 
-  // Si filtrar no es 'true', se retorna la lista completa sin modificaciones
-  return platos;
-}
+    // Si filtrar no es 'true', se retorna la lista completa sin modificaciones
+    return platos;
+  }
 
 
   @Get('reporte/obtener-platos')
   async obtenerPlatos(
     @Query('fechaInicio') fechaInicio: string,
     @Query('fechaFin') fechaFin: string,
+    @Query('sucursalId') sucursalId: string,
   ) {
     return this.menuService.obtenerPlatosPorFechaSucursal({
       fechaInicio: fechaInicio ? new Date(fechaInicio) : null,
       fechaFin: fechaFin ? new Date(fechaFin) : null,
+      sucursalId: sucursalId,
     });
   }
 
@@ -298,26 +302,27 @@ async getPlatosDisponibles(
       throw new Error('No se pudo generar el archivo Excel');
     }
   }
-@Post('/validate-menus')
-async validateMenus(@Body() menusDTO: MenuDTO[]): Promise<{ valid: boolean; errors: { index: number; error: string }[] }> {
+
+  @Post('/validate-menus')
+  async validateMenus(@Body() menusDTO: MenuDTO[]): Promise<{ valid: boolean; errors: { index: number; error: string }[] }> {
     const errors = await this.menuService.validateBatch(menusDTO);
 
     return {
-        valid: errors.length === 0,
-        errors,
+      valid: errors.length === 0,
+      errors,
     };
-}
-
-@Patch(':id/mensaje')
-async updateMensaje(
-  @Param('id') id: string,
-  @Body('mensaje') mensaje: string,
-) {
-  if (!mensaje || typeof mensaje !== 'string') {
-    throw new BadRequestException('El atributo "mensaje" es obligatorio y debe ser una cadena de texto.');
   }
 
-  return await this.menuService.updateMensaje(id, mensaje);
-}
+  @Patch(':id/mensaje')
+  async updateMensaje(
+    @Param('id') id: string,
+    @Body('mensaje') mensaje: string,
+  ) {
+    if (!mensaje || typeof mensaje !== 'string') {
+      throw new BadRequestException('El atributo "mensaje" es obligatorio y debe ser una cadena de texto.');
+    }
+
+    return await this.menuService.updateMensaje(id, mensaje);
+  }
 }
 

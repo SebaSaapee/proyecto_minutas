@@ -3,10 +3,14 @@ import * as mongoose from 'mongoose';
 const MenuDiarioSchema = new mongoose.Schema(
   {
     nombre: { type: String, required: true },
-    fecha: { type: Date, required: true, unique: true }, 
+    fecha: { type: Date, required: true, unique: false }, 
     semana: { type: Number, required: true },
     year: { type: Number, required: true },
-    estado: { type: String, required: true },
+    id_sucursal: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'sucursales', // Referencia al modelo de Sucursal
+      required: true,
+    },
     listaplatos: [{ 
       platoId: { type: mongoose.Schema.Types.ObjectId, ref: 'platos', required: true },
       fila: { type: String, required: true }
