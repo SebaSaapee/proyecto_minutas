@@ -327,9 +327,8 @@ export class MenuDiarioService {
   
     if (sucursalId) {
       filtro.id_sucursal = sucursalId; 
+      filtro.aprobado = true; 
     }
-  
-    console.log("Filtro generado:", filtro);
   
     const menus = await this.model
     .find(filtro)
