@@ -214,17 +214,13 @@ export class MenuDiarioService {
     return this.model.findByIdAndUpdate(id, { aprobado }, { new: true }).exec();
   }
 
-  async getPlatosDisponiblesPorFecha(fecha: Date): Promise<IPlato[]> {
+  async getPlatosDisponiblesPorFecha(fecha: Date, id_sucursal: String): Promise<IPlato[]> {
     // Crear las fechas de referencia para las últimas 12 y 4 semanas
     const fechaInicio12Semanas = new Date(fecha);
     fechaInicio12Semanas.setUTCDate(fechaInicio12Semanas.getUTCDate() - 46);
 
     const fechaInicio4Semanas = new Date(fecha);
     fechaInicio4Semanas.setUTCDate(fechaInicio4Semanas.getUTCDate() - 28);
-
-    console.log('Fecha actual:', fecha);
-    console.log('Fecha inicio 12 semanas atrás:', fechaInicio12Semanas);
-    console.log('Fecha inicio 4 semanas atrás:', fechaInicio4Semanas);
 
     // Obtener todos los platos no descontinuados
     const platos = await this.platoModel.find({ descontinuado: false });
@@ -251,14 +247,17 @@ export class MenuDiarioService {
     ] = await Promise.all([
       this.model.find({
         fecha: { $gte: fechaInicio12Semanas, $lt: fecha },
+        id_sucursal,
         'listaplatos.platoId': { $in: idsPlatosFondo },
       }),
       this.model.find({
         fecha: { $gte: fechaInicio4Semanas, $lt: fecha },
+        id_sucursal,
         'listaplatos.platoId': { $in: idsPlatosRestrictivos },
       }),
       this.model.find({
         fecha: { $gte: fechaInicio4Semanas, $lt: fecha },
+        id_sucursal,
         'listaplatos.platoId': { $in: idsEnsaladas },
       }),
     ]);
@@ -295,8 +294,6 @@ export class MenuDiarioService {
       ...sopas,
       ...postres,
     ];
-
-    console.log('Platos disponibles:', platosDisponibles.map(plato => plato.nombre));
 
     return platosDisponibles;
   }
@@ -383,8 +380,6 @@ export class MenuDiarioService {
           )
         : null,
     };
-
-    console.log(sucursalId)
 
     for (const platoData of platosConCantidad) {
       const { platoId, cantidad } = platoData;
@@ -480,6 +475,7 @@ export class MenuDiarioService {
 
       const existingPlatoEnsalada = await this.model.findOne({
         fecha: { $gte: last4Weeks },
+        id_sucursal, 
         listaplatos: {
           $elemMatch: {
             platoId: { $in: platosEnsaladaIds }
@@ -497,6 +493,7 @@ export class MenuDiarioService {
     // Validar que los platos de fondo no se repitan en las últimas 12 semanas
     const existingPlatoFondo = await this.model.findOne({
         fecha: { $gte: last12Weeks },
+        id_sucursal, 
         listaplatos: {
             $elemMatch: {
                 platoId: { $in: platosFondoIds }
@@ -513,6 +510,7 @@ export class MenuDiarioService {
     // Validar que los platos restrictivos no se repitan en las últimas 4 semanas
     const existingPlatoRestrictivo = await this.model.findOne({
         fecha: { $gte: last4Weeks },
+        id_sucursal, 
         listaplatos: {
             $elemMatch: {
                 platoId: { $in: platosRestrictivosIds }
@@ -538,7 +536,3 @@ export class MenuDiarioService {
     return await menu.save(); // Guardamos los cambios en la base de datos
   }
 }
-
-
-
-

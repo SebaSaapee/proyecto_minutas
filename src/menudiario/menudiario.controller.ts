@@ -117,6 +117,7 @@ export class MenuDiarioController {
     @Query('filtrar') filtrar?: string, // 'true' o 'false'
     @Query('semana') semana?: string,
     @Query('dia') dia?: string,
+    @Query('sucursal') id_sucursal?: string,
   ): Promise<any> {
     // Validación de la fecha
     if (!fecha) {
@@ -128,7 +129,7 @@ export class MenuDiarioController {
     }
 
     // Obtener la lista de platos disponibles según la lógica actual
-    const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha);
+    const platos = await this.menuService.getPlatosDisponiblesPorFecha(parsedFecha, id_sucursal);
     // Si se solicita filtrado extra...
     if (filtrar && filtrar.toLowerCase() === 'true') {
       // Se requieren los parámetros semana y día para poder buscar la estructura
@@ -325,4 +326,3 @@ export class MenuDiarioController {
     return await this.menuService.updateMensaje(id, mensaje);
   }
 }
-
